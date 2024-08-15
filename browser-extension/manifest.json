@@ -35,6 +35,20 @@
         "mac": "Command+Shift+S"
       },
       "description": "Take a partial screenshot"
+    },
+    "sendTextToServer": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Send the selected text to server"
+    },
+    "sendFullScreenShotToServer": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Send the full screenshot to server"
     }
   },
   "action": {

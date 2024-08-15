@@ -24,15 +24,78 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-
 chrome.commands.onCommand.addListener((command) => {
   if (command === "take-partial-screenshot") {
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       let activeTab = tabs[0];
       initiateScreenshotCapture(activeTab);
     });
-  }
+  } else if (command === "sendTextToServer") {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      let activeTab = tabs[0];
+      sendSelectedTextToServer(activeTab);
+    });
+  } else if (command === "sendFullScreenShotToServer") {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      let activeTab = tabs[0];
+      sendFullScreenshotToServer(activeTab);
+    });
+  } 
 });
+
+async function sendSelectedTextToServer(tab) {
+  try {
+    const token = await getGoogleAccessToken();
+    
+    if (!token) {
+      console.log("No access token found. Redirecting to sign-in page.");
+      chrome.tabs.create({ url: "http://localhost:3000/signin" });
+      return;
+    }
+
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      function: getSelectedText,
+    }, (results) => {
+      if (chrome.runtime.lastError) {
+        console.error("Error executing script:", chrome.runtime.lastError);
+        return;
+      }
+
+      const selectedText = results[0].result;
+      if (selectedText) {
+        console.log("Selected text:", selectedText);
+        sendTextToServer(selectedText, token);
+      } else {
+        console.log("No text selected");
+      }
+    });
+  } catch (error) {
+    console.error("Error in sendSelectedTextToServer:", error);
+  }
+}
+
+function getSelectedText() {
+  console.log(window.getSelection().toString());
+  return window.getSelection().toString();
+}
+
+function sendTextToServer(text, token) {
+  console.log("Sending text to server:", text);
+  console.log(text);
+  console.log("working");
+  fetch("http://localhost:3001/text", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body: JSON.stringify({ text })
+  })
+  .then(response => response.text())
+  .then(data => console.log("Text sent successfully:", data))
+  .catch(error => console.error("Error sending text to server:", error));
+}
 
 function initiateScreenshotCapture(tab)  {
   chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" },async (dataUrl) => {
@@ -41,7 +104,7 @@ function initiateScreenshotCapture(tab)  {
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         function: injectScreenshotCode,
-        args: [dataUrl, token] // You'll need to implement getGoogleAccessToken()
+        args: [dataUrl, token] 
       });
     } else {
       console.error("Failed to capture screenshot");
@@ -242,3 +305,31 @@ function injectScreenshotCode(dataUrl, token) {
 
   initializeScreenshotSelection(dataUrl, token);
 }
+
+async function sendFullScreenshotToServer(tab) {
+  try {
+    const token = await getGoogleAccessToken();
+    if (!token) {
+      chrome.tabs.create({ url: "http://localhost:3000/signin" });
+      return;
+    }
+
+    chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
+      if (dataUrl) {
+        sendScreenshotToServer(dataUrl, token); 
+      } else {
+        console.error("Failed to capture screenshot");
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching Google access token or sending full screenshot:", error);
+  }
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.commands.getAll(commands => {
+    for (let command in commands) {
+      console.log(`Command ${command} is registered:`, commands[command]);
+    }
+  });
+});
