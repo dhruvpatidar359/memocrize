@@ -14,7 +14,7 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "sendScreenshot",
     title: "Send screenshot to server",
-    contexts: ["all"] // 'all' context so it's always available
+    contexts: ["all"] 
   });
 
   chrome.contextMenus.create({
@@ -23,6 +23,31 @@ chrome.runtime.onInstalled.addListener(() => {
     contexts: ["all"]
   });
 });
+
+
+chrome.commands.onCommand.addListener((command) => {
+  if (command === "take-partial-screenshot") {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      let activeTab = tabs[0];
+      initiateScreenshotCapture(activeTab);
+    });
+  }
+});
+
+function initiateScreenshotCapture(tab)  {
+  chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" },async (dataUrl) => {
+    if (dataUrl) {
+      const token = await getGoogleAccessToken();
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: injectScreenshotCode,
+        args: [dataUrl, token] // You'll need to implement getGoogleAccessToken()
+      });
+    } else {
+      console.error("Failed to capture screenshot");
+    }
+  });
+}
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
@@ -53,53 +78,31 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
       });
     } else if (info.menuItemId === "selectAreaAndSendScreenshot") {
-      chrome.desktopCapture.chooseDesktopMedia(["screen", "window"], tab, async (streamId) => {
-        if (!streamId) {
-          console.error("Failed to get stream ID");
-          return;
-        }
-
-        const captureOptions = {
-          video: {
-            mandatory: {
-              chromeMediaSource: "desktop",
-              chromeMediaSourceId: streamId,
-            },
-          },
-        };
-
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia(captureOptions);
-          const track = stream.getVideoTracks()[0];
-          const imageCapture = new ImageCapture(track);
-          const bitmap = await imageCapture.grabFrame();
-          track.stop();
-
-          chrome.tabs.create({
-            url: chrome.runtime.getURL("capture.html"),
-            active: false
-          }, function (tab) {
-            chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-              if (info.status === "complete" && tabId === tab.id) {
-                chrome.tabs.onUpdated.removeListener(listener);
-                chrome.tabs.sendMessage(tab.id, { bitmap, token });
-              }
-            });
+      // Workaround to get the system prompt in the background script
+      chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
+        if (dataUrl) {
+          chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            function: injectScreenshotCode,
+            args: [dataUrl, token]
           });
-
-        } catch (error) {
-          console.error("Error capturing the screen:", error);
+        } else {
+          console.error("Failed to capture screenshot");
         }
       });
     }
+    // ... other menu item handlers ...
   } catch (error) {
     console.error("Error fetching Google access token or sending data:", error);
-  }
+  
+    }
+  
 });
 
 async function getGoogleAccessToken() {
   return new Promise((resolve, reject) => {
     chrome.cookies.get({ url: "http://localhost:3000", name: "googleAccessToken" }, (cookie) => {
+      console.log(cookie);
       if (cookie) {
         resolve(cookie.value);
       } else {
@@ -149,4 +152,87 @@ function sendScreenshotToServer(dataUrl, token) {
   .then(response => response.text())
   .then(data => console.log("Screenshot sent successfully:", data))
   .catch(error => console.error("Error sending screenshot to server:", error));
+}
+
+function injectScreenshotCode(dataUrl, token) {
+  let canvas, ctx, startX, startY, endX, endY, isDrawing = false;
+
+  function initializeScreenshotSelection(dataUrl, token) {
+    canvas = document.createElement('canvas');
+    ctx = canvas.getContext('2d');
+    
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.zIndex = '10000';
+   
+    
+    document.body.appendChild(canvas);
+
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+
+      canvas.onmousedown = (e) => {
+        startX = e.clientX;
+        startY = e.clientY;
+        isDrawing = true;
+      };
+
+      canvas.onmousemove = (e) => {
+        if (isDrawing) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+          endX = e.clientX;
+          endY = e.clientY;
+          ctx.strokeStyle = 'red';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(startX, startY, endX - startX, endY - startY);
+        }
+      };
+
+      canvas.onmouseup = () => {
+        isDrawing = false;
+        const croppedImage = ctx.getImageData(
+          Math.min(startX, endX),
+          Math.min(startY, endY),
+          Math.abs(endX - startX),
+          Math.abs(endY - startY)
+        );
+        canvas.onmousedown = canvas.onmousemove = canvas.onmouseup = null;
+
+        let tempCanvas = document.createElement('canvas');
+        tempCanvas.width = croppedImage.width;
+        tempCanvas.height = croppedImage.height;
+        let tempCtx = tempCanvas.getContext('2d');
+        tempCtx.putImageData(croppedImage, 0, 0);
+
+        const screenshotDataUrl = tempCanvas.toDataURL('image/png');
+        sendScreenshotToServer(screenshotDataUrl, token);
+        
+        document.body.removeChild(canvas);
+      };
+    };
+    img.src = dataUrl;
+  }
+
+  function sendScreenshotToServer(screenshotDataUrl, token) {
+    fetch("http://localhost:3001/screenshot", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ screenshot: screenshotDataUrl })
+    })
+    .then(response => response.text())
+    .then(data => {
+      console.log("Screenshot sent successfully:", data);
+    })
+    .catch(error => console.error("Error sending screenshot to server:", error));
+  }
+
+  initializeScreenshotSelection(dataUrl, token);
 }

@@ -1,32 +1,49 @@
-let canvas = document.getElementById('canvas');
-let ctx = canvas.getContext('2d');
+let canvas, ctx, startX, startY, endX, endY, isDrawing = false;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
 
-let startX, startY, endX, endY, isDrawing = false;
+chrome.runtime.onConnect.addListener(function(port) {
+  console.log('Content script connected');
+});
+
+chrome.runtime.sendMessage({action: "contentScriptReady"}, function(response) {
+  console.log('Content script reported as ready');
+});
+
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message.bitmap && message.token) {
-    const bitmap = message.bitmap;
+  
+  if (message.action === "initializeScreenshotSelection" && message.dataUrl && message.token) {
+    initializeScreenshotSelection(message.dataUrl, message.token);
+  }
+});
 
-    // Draw the captured screen on the canvas
-    createImageBitmap(bitmap).then(imgBitmap => {
-      ctx.drawImage(imgBitmap, 0, 0, canvas.width, canvas.height);
-    });
+function initializeScreenshotSelection(dataUrl, token) {
+  canvas = document.createElement('canvas');
+  ctx = canvas.getContext('2d');
+  
+  canvas.style.position = 'fixed';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.zIndex = '10000';
+  
+  document.body.appendChild(canvas);
 
-    // Mouse down to start selecting the area
+  const img = new Image();
+  img.onload = () => {
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.drawImage(img, 0, 0);
+
     canvas.onmousedown = (e) => {
       startX = e.clientX;
       startY = e.clientY;
       isDrawing = true;
     };
 
-    // Mouse move to update the selected area
     canvas.onmousemove = (e) => {
       if (isDrawing) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
         endX = e.clientX;
         endY = e.clientY;
         ctx.strokeStyle = 'red';
@@ -35,26 +52,30 @@ chrome.runtime.onMessage.addListener((message) => {
       }
     };
 
-    // Mouse up to finish selecting and send the cropped area
     canvas.onmouseup = () => {
       isDrawing = false;
-      const croppedImage = ctx.getImageData(startX, startY, endX - startX, endY - startY);
+      const croppedImage = ctx.getImageData(
+        Math.min(startX, endX),
+        Math.min(startY, endY),
+        Math.abs(endX - startX),
+        Math.abs(endY - startY)
+      );
       canvas.onmousedown = canvas.onmousemove = canvas.onmouseup = null;
 
-      // Create a temporary canvas to hold the cropped image
       let tempCanvas = document.createElement('canvas');
       tempCanvas.width = croppedImage.width;
       tempCanvas.height = croppedImage.height;
       let tempCtx = tempCanvas.getContext('2d');
       tempCtx.putImageData(croppedImage, 0, 0);
 
-      // Convert to data URL and send to server
-      tempCanvas.toDataURL('image/png').then(dataUrl => {
-        sendScreenshotToServer(dataUrl, message.token);
-      });
+      const dataUrl = tempCanvas.toDataURL('image/png');
+      sendScreenshotToServer(dataUrl, token);
+      
+      document.body.removeChild(canvas);
     };
-  }
-});
+  };
+  img.src = dataUrl;
+}
 
 function sendScreenshotToServer(dataUrl, token) {
   fetch("http://localhost:3001/screenshot", {
@@ -68,7 +89,6 @@ function sendScreenshotToServer(dataUrl, token) {
   .then(response => response.text())
   .then(data => {
     console.log("Screenshot sent successfully:", data);
-    window.close(); // Close the tab after sending
   })
   .catch(error => console.error("Error sending screenshot to server:", error));
 }
