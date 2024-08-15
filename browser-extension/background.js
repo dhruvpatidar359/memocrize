@@ -156,16 +156,21 @@ function sendScreenshotToServer(dataUrl, token) {
 
 function injectScreenshotCode(dataUrl, token) {
   let canvas, ctx, startX, startY, endX, endY, isDrawing = false;
+  const zoomFactor = 0.67;  
 
   function initializeScreenshotSelection(dataUrl, token) {
     canvas = document.createElement('canvas');
+    document.body.style.zoom = `${zoomFactor * 100}%`;  
+    const scale = window.devicePixelRatio;
     ctx = canvas.getContext('2d');
-    
+    ctx.scale(scale, scale);
+
     canvas.style.position = 'fixed';
     canvas.style.top = '0';
     canvas.style.left = '0';
+    canvas.style.right = '0';
+    canvas.style.bottom = '0';
     canvas.style.zIndex = '10000';
-   
     
     document.body.appendChild(canvas);
 
@@ -176,8 +181,8 @@ function injectScreenshotCode(dataUrl, token) {
       ctx.drawImage(img, 0, 0);
 
       canvas.onmousedown = (e) => {
-        startX = e.clientX;
-        startY = e.clientY;
+        startX = e.clientX / zoomFactor;  // Adjust for zoom
+        startY = e.clientY / zoomFactor;  // Adjust for zoom
         isDrawing = true;
       };
 
@@ -185,8 +190,8 @@ function injectScreenshotCode(dataUrl, token) {
         if (isDrawing) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
           ctx.drawImage(img, 0, 0);
-          endX = e.clientX;
-          endY = e.clientY;
+          endX = e.clientX / zoomFactor;  // Adjust for zoom
+          endY = e.clientY / zoomFactor;  // Adjust for zoom
           ctx.strokeStyle = 'red';
           ctx.lineWidth = 2;
           ctx.strokeRect(startX, startY, endX - startX, endY - startY);
@@ -213,6 +218,7 @@ function injectScreenshotCode(dataUrl, token) {
         sendScreenshotToServer(screenshotDataUrl, token);
         
         document.body.removeChild(canvas);
+        document.body.style.zoom = "100%";  // Reset zoom to 100%
       };
     };
     img.src = dataUrl;
