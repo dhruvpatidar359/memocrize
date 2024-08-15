@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Text Sender",
+  "name": "Memocrize",
   "version": "1.0",
   "permissions": [
     "contextMenus",
     "cookies",
     "tabs",
     "activeTab",
+    "storage",
     "scripting",
     "desktopCapture"
     
@@ -57,7 +58,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["capture.html", "capture.js"],
+      "resources": ["capture.html", "capture.js","collection_choice.html"],
       "matches": ["<all_urls>"]
     }
   ],

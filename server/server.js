@@ -4,34 +4,68 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 
-// Enable CORS for all origins
 app.use(cors());
+app.use(express.json({ limit: '50mb' }));
 
-// Enable parsing of JSON request bodies
-app.use(express.json({ limit: '50mb' })); // Increase the limit for large screenshots
+// Helper function to ensure directory exists
+function ensureDirectoryExistence(filePath) {
+  const dirname = path.dirname(filePath);
+  if (fs.existsSync(dirname)) {
+    return true;
+  }
+  ensureDirectoryExistence(dirname);
+  fs.mkdirSync(dirname);
+}
 
 // Route to handle text data
 app.post('/text', (req, res) => {
-  const text = req.body.text;
+  const { text, collection, mode } = req.body;
   console.log('Received text:', text);
-  res.json({ message: 'Text received successfully!' });
+  console.log('Collection:', collection);
+  console.log('Mode:', mode);
+
+  const baseDir = path.join(__dirname, 'data', collection);
+  ensureDirectoryExistence(baseDir);
+
+  let filePath;
+  if (mode === 'stack') {
+    filePath = path.join(baseDir, `stack.txt`);
+    fs.appendFileSync(filePath, text + '\n\n');
+  } else {
+    filePath = path.join(baseDir, `text-${Date.now()}.txt`);
+    fs.writeFileSync(filePath, text);
+  }
+
+  res.json({ message: 'Text received and saved successfully!' });
 });
 
 // Route to handle image URLs
 app.post('/image', (req, res) => {
-  const imageUrl = req.body.imageUrl;
+  const { imageUrl, collection, mode } = req.body;
   console.log('Received image URL:', imageUrl);
-  // Here you can download the image using the URL or process it as needed
+  console.log('Collection:', collection);
+  console.log('Mode:', mode);
+
+  // Here you would implement the logic to download and save the image
+  // For now, we'll just send a success message
   res.json({ message: 'Image URL received successfully!' });
 });
 
 // Route to handle screenshot data
 app.post('/screenshot', (req, res) => {
-  const screenshotData = req.body.screenshot;
-  const base64Data = screenshotData.replace(/^data:image\/png;base64,/, "");
-  const filePath = path.join(__dirname, 'screenshots', `screenshot-${Date.now()}.png`);
+  const { screenshot, collection, mode } = req.body;
+  const base64Data = screenshot.replace(/^data:image\/png;base64,/, "");
 
-  // Save the screenshot as a file
+  const baseDir = path.join(__dirname, 'data', collection, 'screenshots');
+  ensureDirectoryExistence(baseDir);
+
+  let filePath;
+  if (mode === 'stack') {
+    filePath = path.join(baseDir, `latest.png`);
+  } else {
+    filePath = path.join(baseDir, `screenshot-${Date.now()}.png`);
+  }
+
   fs.writeFile(filePath, base64Data, 'base64', (err) => {
     if (err) {
       console.error('Error saving screenshot:', err);
@@ -43,7 +77,6 @@ app.post('/screenshot', (req, res) => {
   });
 });
 
-// Start the server on port 3001
 app.listen(3001, () => {
   console.log('Server listening on port 3001');
 });

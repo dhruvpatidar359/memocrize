@@ -1,3 +1,41 @@
+
+
+
+async function getUserCollectionChoice() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(['collections', 'defaultCollection'], (result) => {
+      const collections = result.collections || ['Work', 'Personal', 'Study'];
+      const defaultCollection = result.defaultCollection || collections[0];
+
+      
+      
+      chrome.windows.create({
+        url: chrome.runtime.getURL('collection_choice.html'),
+        type: 'popup',
+        width: 300,
+        height: 200
+      }, (window) => {
+        chrome.runtime.onMessage.addListener(function listener(message) {
+          if (message.type === 'collectionChosen') {
+            chrome.runtime.onMessage.removeListener(listener);
+            resolve(message.collection);
+          }
+        });
+      });
+    });
+  });
+}
+
+// Function to get user's mode preference
+async function getUserModePreference() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get('mode', (result) => {
+      resolve(result.mode || 'stack');
+    });
+  });
+}
+
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "sendText",
@@ -52,6 +90,14 @@ async function sendSelectedTextToServer(tab) {
       chrome.tabs.create({ url: "http://localhost:3000/signin" });
       return;
     }
+    console.log("worlking");
+    const collection = await getUserCollectionChoice();
+    console.log(collection);
+    console.log("works");
+
+    const mode = await getUserModePreference();
+
+    console.log(collection);
 
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -65,7 +111,7 @@ async function sendSelectedTextToServer(tab) {
       const selectedText = results[0].result;
       if (selectedText) {
         console.log("Selected text:", selectedText);
-        sendTextToServer(selectedText, token);
+        sendTextToServer(selectedText, token, collection, mode);
       } else {
         console.log("No text selected");
       }
@@ -75,27 +121,27 @@ async function sendSelectedTextToServer(tab) {
   }
 }
 
-function getSelectedText() {
-  console.log(window.getSelection().toString());
-  return window.getSelection().toString();
-}
-
-function sendTextToServer(text, token) {
+function sendTextToServer(text, token, collection, mode) {
   console.log("Sending text to server:", text);
-  console.log(text);
-  console.log("working");
   fetch("http://localhost:3001/text", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ text, collection, mode })
   })
   .then(response => response.text())
   .then(data => console.log("Text sent successfully:", data))
   .catch(error => console.error("Error sending text to server:", error));
 }
+
+function getSelectedText() {
+  console.log(window.getSelection().toString());
+  return window.getSelection().toString();
+}
+
+
 
 function initiateScreenshotCapture(tab)  {
   chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" },async (dataUrl) => {
@@ -121,10 +167,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       return;
     }
 
+    const collection = await getUserCollectionChoice();
+    const mode = await getUserModePreference();
+
     if (info.menuItemId === "sendText") {
       const selectedText = info.selectionText;
       if (selectedText) {
-        sendTextToServer(selectedText, token);
+        sendTextToServer(selectedText, token, collection, mode);
       }
     } else if (info.menuItemId === "sendImage") {
       const imageUrl = info.srcUrl;
@@ -132,7 +181,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         sendImageToServer(imageUrl, token);
       }
     } else if (info.menuItemId === "sendScreenshot") {
-      // Capture the visible area of the current tab and send it to the server
       chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
         if (dataUrl) {
           sendScreenshotToServer(dataUrl, token);
@@ -141,25 +189,21 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         }
       });
     } else if (info.menuItemId === "selectAreaAndSendScreenshot") {
-      // Workaround to get the system prompt in the background script
       chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
         if (dataUrl) {
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
             function: injectScreenshotCode,
-            args: [dataUrl, token]
+            args: [dataUrl, token, collection, mode]
           });
         } else {
           console.error("Failed to capture screenshot");
         }
       });
     }
-    // ... other menu item handlers ...
   } catch (error) {
     console.error("Error fetching Google access token or sending data:", error);
-  
-    }
-  
+  }
 });
 
 async function getGoogleAccessToken() {
@@ -173,20 +217,6 @@ async function getGoogleAccessToken() {
       }
     });
   });
-}
-
-function sendTextToServer(text, token) {
-  fetch("http://localhost:3001/text", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
-    },
-    body: JSON.stringify({ text })
-  })
-  .then(response => response.text())
-  .then(data => console.log("Text sent successfully:", data))
-  .catch(error => console.error("Error sending text to server:", error));
 }
 
 function sendImageToServer(imageUrl, token) {
@@ -203,21 +233,23 @@ function sendImageToServer(imageUrl, token) {
   .catch(error => console.error("Error sending image to server:", error));
 }
 
-function sendScreenshotToServer(dataUrl, token) {
+function sendScreenshotToServer(screenshotDataUrl, token, collection, mode) {
   fetch("http://localhost:3001/screenshot", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
-    body: JSON.stringify({ screenshot: dataUrl })
+    body: JSON.stringify({ screenshot: screenshotDataUrl, collection, mode })
   })
   .then(response => response.text())
-  .then(data => console.log("Screenshot sent successfully:", data))
+  .then(data => {
+    console.log("Screenshot sent successfully:", data);
+  })
   .catch(error => console.error("Error sending screenshot to server:", error));
 }
 
-function injectScreenshotCode(dataUrl, token) {
+function injectScreenshotCode(dataUrl, token, collection, mode) {
   let canvas, ctx, startX, startY, endX, endY, isDrawing = false;
   const zoomFactor = 0.67;  
 
@@ -278,7 +310,7 @@ function injectScreenshotCode(dataUrl, token) {
         tempCtx.putImageData(croppedImage, 0, 0);
 
         const screenshotDataUrl = tempCanvas.toDataURL('image/png');
-        sendScreenshotToServer(screenshotDataUrl, token);
+        sendScreenshotToServer(screenshotDataUrl, token, collection, mode);
         
         document.body.removeChild(canvas);
         document.body.style.zoom = "100%";  // Reset zoom to 100%
@@ -314,9 +346,12 @@ async function sendFullScreenshotToServer(tab) {
       return;
     }
 
+    const collection = await getUserCollectionChoice();
+    const mode = await getUserModePreference();
+
     chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
       if (dataUrl) {
-        sendScreenshotToServer(dataUrl, token); 
+        sendScreenshotToServer(dataUrl, token, collection, mode);
       } else {
         console.error("Failed to capture screenshot");
       }
