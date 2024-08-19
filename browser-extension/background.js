@@ -5,21 +5,22 @@ async function getUserCollectionChoice() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(['collections', 'defaultCollection'], (result) => {
       const collections = result.collections || ['Work', 'Personal', 'Study'];
-      const defaultCollection = result.defaultCollection || collections[0];
-
       
+
+      console.log(collections);
       
       chrome.windows.create({
         url: chrome.runtime.getURL('collection_choice.html'),
         type: 'popup',
-        width: 300,
-        height: 200
+        
       }, (window) => {
         chrome.runtime.onMessage.addListener(function listener(message) {
           if (message.type === 'collectionChosen') {
             chrome.runtime.onMessage.removeListener(listener);
+            chrome.windows.remove(window.id); // Close the window here
             resolve(message.collection);
           }
+          console.log("received message", message);
         });
       });
     });
