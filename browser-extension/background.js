@@ -31,7 +31,7 @@ async function getUserCollectionChoice() {
 async function getUserModePreference() {
   return new Promise((resolve) => {
     chrome.storage.sync.get('mode', (result) => {
-      resolve(result.mode || 'stack');
+      resolve(result.mode || 'collection');
     });
   });
 }
@@ -144,14 +144,21 @@ function getSelectedText() {
 
 
 
-function initiateScreenshotCapture(tab)  {
+async function initiateScreenshotCapture(tab)  {
+  const collection = await getUserCollectionChoice();
+  const mode = await getUserModePreference();
+
+  console.log(collection);
   chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" },async (dataUrl) => {
+    console.log("working boss");
     if (dataUrl) {
+     
       const token = await getGoogleAccessToken();
+      console.log(dataUrl,collection,mode,token);
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
         function: injectScreenshotCode,
-        args: [dataUrl, token] 
+        args: [dataUrl, token,collection,mode] 
       });
     } else {
       console.error("Failed to capture screenshot");
@@ -168,13 +175,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       return;
     }
 
-    const collection = await getUserCollectionChoice();
-    const mode = await getUserModePreference();
+
 
     if (info.menuItemId === "sendText") {
       const selectedText = info.selectionText;
       if (selectedText) {
-        sendTextToServer(selectedText, token, collection, mode);
+        sendSelectedTextToServer(tab);
       }
     } else if (info.menuItemId === "sendImage") {
       const imageUrl = info.srcUrl;
@@ -184,23 +190,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     } else if (info.menuItemId === "sendScreenshot") {
       chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
         if (dataUrl) {
-          sendScreenshotToServer(dataUrl, token);
+          sendFullScreenshotToServer(tab);
         } else {
           console.error("Failed to capture screenshot");
         }
       });
     } else if (info.menuItemId === "selectAreaAndSendScreenshot") {
-      chrome.tabs.captureVisibleTab(tab.windowId, { format: "png" }, (dataUrl) => {
-        if (dataUrl) {
-          chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            function: injectScreenshotCode,
-            args: [dataUrl, token, collection, mode]
-          });
-        } else {
-          console.error("Failed to capture screenshot");
-        }
-      });
+      initiateScreenshotCapture(tab);
     }
   } catch (error) {
     console.error("Error fetching Google access token or sending data:", error);
@@ -235,13 +231,14 @@ function sendImageToServer(imageUrl, token) {
 }
 
 function sendScreenshotToServer(screenshotDataUrl, token, collection, mode) {
+  console.log(screenshotDataUrl,collection);
   fetch("http://localhost:3001/screenshot", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${token}`
     },
-    body: JSON.stringify({ screenshot: screenshotDataUrl, collection, mode })
+    body: JSON.stringify({ screenshot: screenshotDataUrl,collection : collection,mode: mode })
   })
   .then(response => response.text())
   .then(data => {
@@ -250,11 +247,30 @@ function sendScreenshotToServer(screenshotDataUrl, token, collection, mode) {
   .catch(error => console.error("Error sending screenshot to server:", error));
 }
 
-function injectScreenshotCode(dataUrl, token, collection, mode) {
+ function injectScreenshotCode(dataUrl, token,collection,mode) {
+
+  function sendScreenshotToServer(screenshotDataUrl, token, collection, mode) {
+    console.log(screenshotDataUrl,collection);
+    fetch("http://localhost:3001/screenshot", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
+      body: JSON.stringify({ screenshot: screenshotDataUrl,collection : collection,mode: mode })
+    })
+    .then(response => response.text())
+    .then(data => {
+      console.log("Screenshot sent successfully:", data);
+    })
+    .catch(error => console.error("Error sending screenshot to server:", error));
+  }
+ 
   let canvas, ctx, startX, startY, endX, endY, isDrawing = false;
   const zoomFactor = 0.67;  
 
-  function initializeScreenshotSelection(dataUrl, token) {
+   function initializeScreenshotSelection(dataUrl, token,collection,mode) {
+   
     canvas = document.createElement('canvas');
     document.body.style.zoom = `${zoomFactor * 100}%`;  
     const scale = window.devicePixelRatio;
@@ -311,6 +327,10 @@ function injectScreenshotCode(dataUrl, token, collection, mode) {
         tempCtx.putImageData(croppedImage, 0, 0);
 
         const screenshotDataUrl = tempCanvas.toDataURL('image/png');
+        
+    console.log(collection);
+    console.log("bhai upper ha vo");
+    console.log(mode);
         sendScreenshotToServer(screenshotDataUrl, token, collection, mode);
         
         document.body.removeChild(canvas);
@@ -320,23 +340,9 @@ function injectScreenshotCode(dataUrl, token, collection, mode) {
     img.src = dataUrl;
   }
 
-  function sendScreenshotToServer(screenshotDataUrl, token) {
-    fetch("http://localhost:3001/screenshot", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      },
-      body: JSON.stringify({ screenshot: screenshotDataUrl })
-    })
-    .then(response => response.text())
-    .then(data => {
-      console.log("Screenshot sent successfully:", data);
-    })
-    .catch(error => console.error("Error sending screenshot to server:", error));
-  }
+ 
 
-  initializeScreenshotSelection(dataUrl, token);
+  initializeScreenshotSelection(dataUrl, token,collection,mode);
 }
 
 async function sendFullScreenshotToServer(tab) {
