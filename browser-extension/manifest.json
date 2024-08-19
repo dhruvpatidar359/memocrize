@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Text Sender",
+  "name": "Memocrize",
   "version": "1.0",
   "permissions": [
     "contextMenus",
     "cookies",
     "tabs",
     "activeTab",
+    "storage",
     "scripting",
     "desktopCapture"
     
@@ -24,7 +25,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["capture.js"],
+      "js": ["capture.js","collection_choice.js"],
       "run_at": "document_idle"
     }
   ],
@@ -35,6 +36,20 @@
         "mac": "Command+Shift+S"
       },
       "description": "Take a partial screenshot"
+    },
+    "sendTextToServer": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+X",
+        "mac": "Command+Shift+X"
+      },
+      "description": "Send the selected text to server"
+    },
+    "sendFullScreenShotToServer": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Send the full screenshot to server"
     }
   },
   "action": {
@@ -43,7 +58,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["capture.html", "capture.js"],
+      "resources": ["capture.html", "capture.js","collection_choice.html","collection_choice.js"],
       "matches": ["<all_urls>"]
     }
   ],
