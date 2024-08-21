@@ -1,6 +1,3 @@
-
-
-
 async function getUserCollectionChoice() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(['collections', 'defaultCollection'], (result) => {
@@ -43,6 +40,13 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "Send selected text to server",
     contexts: ["selection"]
   });
+
+  chrome.contextMenus.create({
+    id: "generateQRCode",
+    title: "Generate QR Code",
+    contexts: ["all"]
+});
+
 
   chrome.contextMenus.create({
     id: "sendImage",
@@ -197,11 +201,63 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       });
     } else if (info.menuItemId === "selectAreaAndSendScreenshot") {
       initiateScreenshotCapture(tab);
-    }
+    } else  if (info.menuItemId === "generateQRCode") {
+      const token = await getGoogleAccessToken();
+      
+      if (!token) {
+          chrome.tabs.create({ url: "http://localhost:3000/signin" });
+          return;
+      }
+ 
+
+      const qrCodeUrl = "abce";
+      showQRCodePopup(qrCodeUrl);
+  }
   } catch (error) {
     console.error("Error fetching Google access token or sending data:", error);
   }
 });
+
+
+
+function showQRCodePopup(qrCodeUrl) {
+
+  chrome.windows.create({
+    url: chrome.runtime.getURL('qr_pop.html'),
+    type: 'popup',
+    
+  }, (window) => {
+    chrome.runtime.onMessage.addListener(function listener(message) {
+      if (message.type === 'collectionChosen') {
+        chrome.runtime.onMessage.removeListener(listener);
+        chrome.windows.remove(window.id); // Close the window here
+        resolve(message.collection);
+      }
+      console.log("received message", message);
+    });
+  });
+
+  // chrome.windows.create({
+  //   url: chrome.runtime.getURL('qr_popup.html'),
+  //   type: 'popup',
+  //   width: 300,
+  //   height: 300
+  // }, (window) => {
+  //   chrome.tabs.onUpdated.addListener(function listener(tabId, changeInfo) {
+  //     if (tabId === window.tabs[0].id && changeInfo.status === 'complete') {
+  //       chrome.tabs.onUpdated.removeListener(listener);
+
+  //       chrome.scripting.executeScript({
+  //         target: { tabId: tabId },
+  //         func: (url) => {
+  //           document.getElementById('qrCode').src = url;
+  //         },
+  //         args: [qrCodeUrl]
+  //       });
+  //     }
+  //   });
+  // });
+}
 
 async function getGoogleAccessToken() {
   return new Promise((resolve, reject) => {

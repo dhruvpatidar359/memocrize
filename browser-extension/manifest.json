@@ -11,13 +11,13 @@
     "scripting",
     "desktopCapture"
     
-  ],
+  ],  
   "background": {
     "service_worker": "background.js"
   },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
-  },
+ "content_security_policy": {
+  "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+},
   "host_permissions": [
     "http://localhost:3000/*",
     "http://localhost:3001/*"
@@ -57,13 +57,19 @@
   
   },
   "web_accessible_resources": [
-    {
-      "resources": ["capture.html", "capture.js","collection_choice.html","collection_choice.js"],
-      "matches": ["<all_urls>"]
-    }
-  ],
+  {
+    "resources": ["capture.html", "capture.js", "collection_choice.html", "collection_choice.js", "qr_pop.html", "qrcode.min.js", "qr_pop.js","qrcode.js"],
+    "matches": ["<all_urls>"]
+  }
+],
   "externally_connectable": {
     "matches": ["*://*.google.com/*"]
-}
+},
+"icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
  
 }

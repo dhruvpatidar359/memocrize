@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #83a4d4, #b6fbff);
+            font-family: 'Roboto', sans-serif;
+            color: #fff;
+        }
+
+        #placeHolder {
+            padding: 20px;
+            background: radial-gradient(circle, #ffffff, #f0f0f0);
+            border: none;
+            box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        #placeHolder:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 15px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            font-size: 28px;
+            text-align: center;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #status {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="placeHolder"></div>
+    <h1>Scan to Link Your Device</h1>
+    <script src="qrcode.min.js"></script>
+    <script type="text/javascript" src="qrcode.js"></script>
+    <script src="qr_pop.js"></script>
+</body>
+</html>
