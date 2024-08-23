@@ -9,7 +9,6 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 async function ensureDirectoryExistence(filePath) {
-  console.log(filePath);
   const dirname = path.dirname(filePath);
   try {
     await fs.access(dirname);
@@ -75,9 +74,10 @@ app.post('/image', async (req, res) => {
 app.post('/screenshot', async (req, res) => {
   try {
     const { screenshot, collection, mode } = req.body;
-    // console.log({ screenshot, collection, mode } );
-    const base64Data = screenshot.replace(/^data:image\/png;base64,/, "");
+    console.log(req.body);
 
+    const base64Data = screenshot.replace(/^data:image\/png;base64,/, "");
+ 
     let baseDir = mode === 'stack' ? path.join(__dirname, 'data', 'stack') : path.join(__dirname, 'data', collection);
     // console.log(baseDir);
     await ensureDirectoryExistence(baseDir);
