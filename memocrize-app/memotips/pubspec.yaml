@@ -36,7 +36,12 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.6
   mesh: ^0.3.0
-  qr_code_scanner: ^1.0.1
+  lucide_icons: ^0.257.0
+  glossy: ^0.0.4
+  flutter_svg: ^2.0.10+1
+  floating_navbar: ^2.0.2
+  flutter_zxing: ^1.7.0
+  gap: ^3.0.1
 
 dev_dependencies:
   flutter_test:
