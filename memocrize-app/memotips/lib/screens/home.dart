@@ -1,4 +1,9 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
+import 'package:glossy/glossy.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:mesh/mesh.dart';
 
 class Home extends StatefulWidget {
@@ -13,12 +18,12 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-          backgroundColor: Colors.white,
-          body: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Stack(children: [
-              // MyWidget(),
-              Center(
+          backgroundColor: Colors.black,
+          body: Stack(children: [
+            MyWidget(),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Center(
                 child: Container(
                   height: MediaQuery.sizeOf(context).height,
                   width: MediaQuery.sizeOf(context).width,
@@ -38,7 +43,7 @@ class _HomeState extends State<Home> {
                                   fontSize: 48,
                                   height: 0.8,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.black),
+                                  color: Colors.white),
                             ),
                             Text(
                               "Memory",
@@ -50,15 +55,113 @@ class _HomeState extends State<Home> {
                           ],
                         ),
                       ),
-                      Row(
-                        children: [],
-                      )
+                      Gap(20),
+                      Container(
+                        height: 220,
+                        child: Row(
+                          children: [
+                            // Wrap each container in Expanded to distribute space equally
+                            Expanded(
+                              child: GlossyContainer(
+                                // border: ,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                                borderRadius: BorderRadius.circular(20),
+                                height: 210,
+                                width: MediaQuery.sizeOf(context).width / 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Icon(
+                                        Icons.text_fields_sharp,
+                                        size: 48,
+                                        color: Colors.white,
+                                      ),
+                                      Text(
+                                        "Write it Out",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 36,
+                                          height: 1,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Gap(10), // Fixed gap between containers
+                            Expanded(
+                              child: GlossyContainer(
+                                // border: ,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                                borderRadius: BorderRadius.circular(20),
+                                height: 210,
+                                width: MediaQuery.sizeOf(context).width / 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Icon(
+                                        Icons.camera,
+                                        size: 48,
+                                        color: Colors.white,
+                                      ),
+                                      Text(
+                                        "Take it Out",
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 36,
+                                          height: 1,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Gap(10),
+                      GlossyContainer(
+                        // border: ,
+                        border: Border.all(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.circular(20),
+                        height: 160,
+                        width: MediaQuery.sizeOf(context).width,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Center(
+                            child: Text(
+                              "Video",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 36,
+                                height: 1,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              )
-            ]),
-          )),
+              ),
+            ),
+          ])),
     );
   }
 }
@@ -95,6 +198,13 @@ class _MyWidgetState extends State<MyWidget>
         controller.animateTo(1, curve: Curves.easeInOutCubic);
       }
     });
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
