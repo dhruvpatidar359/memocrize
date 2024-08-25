@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:memotips/navigation/bottomNavigation.dart';
+import 'package:memotips/screens/collections.dart';
 import 'package:memotips/screens/home.dart';
 import 'package:memotips/screens/qr_code.dart';
 
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: Scaffold(body: BottomNavigation()),
+      home: Scaffold(body: Collections()),
     );
   }
 }
