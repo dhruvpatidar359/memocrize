@@ -36,6 +36,7 @@ const uploadImage = async (req, res) => {
         const userImageCollection = userImage.doc(count.toString());
 
         await userImageCollection.set({
+            datatype: "image",
             fileName: uniqueFileName,
             fileUrl: fileUrl,
             uploadTimestamp: admin.firestore.FieldValue.serverTimestamp(), // Correct usage
@@ -55,38 +56,28 @@ const uploadText = async (req, res) => {
         return res.status(400).send("Missing data");
     }
 
-    const imageBuffer = textToImage(text, {
-        width: 800,
-        height: 400,
-        fontSize: 60,
-        bgColor: '#ffffff',
-        textColor: '#000000',
-    });
-
-    const uniqueFileName = `${uuidv4()}-text-image.png`;
-    const file = bucket.file(uniqueFileName);
+    const uniqueFileName = `${uuidv4()}`;
 
     try {
-        await file.save(imageBuffer, {
-            metadata: { contentType: 'image/jpeg' },
-            public: false,
-        });
+        const textCollection = db.collection('users').doc(userId);
+        const userText = textCollection.collection(collectionName);
 
-        const fileUrl = `https://storage.googleapis.com/${bucket.name}/${uniqueFileName}`;
+        const snapshot = await userText.get();
+        const count = snapshot.size;
 
-        // Store metadata in Firestore
-        const userRef = db.collection('users').doc(userId);
-        const imageRef = userRef.collection(`${collectionName}`).doc();
+        const userTextCollection = userText.doc(count.toString());
 
-        await imageRef.set({
+        await userTextCollection.set({
+            datatype: "text",
             fileName: uniqueFileName,
-            fileUrl: fileUrl,
-            uploadTimestamp: admin.firestore.FieldValue.serverTimestamp(), // Correct usage
+            text: text
         });
 
-        res.send({ fileUrl });
-    } catch (error) {
-        res.status(500).send('Failed to upload image');
+        return res.send("text saved");  
+
+    }
+    catch(error){
+        return res.status(400).send("Unable to store text");
     }
 }
 
