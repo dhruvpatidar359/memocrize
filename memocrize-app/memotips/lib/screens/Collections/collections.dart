@@ -4,7 +4,7 @@ import 'package:gap/gap.dart';
 import 'package:glossy/glossy.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:memotips/screens/Collections/serach.dart';
-import 'package:memotips/screens/collections.dart';
+import 'package:memotips/screens/Collections/cards.dart';
 import 'package:rive/rive.dart' as rive;
 import 'package:watch_it/watch_it.dart';
 

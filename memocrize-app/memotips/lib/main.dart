@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:memotips/navigation/bottomNavigation.dart';
 import 'package:memotips/screens/Collections/collections.dart';
+import 'package:memotips/screens/Memories/memories.dart';
 import 'package:memotips/screens/home.dart';
 import 'package:memotips/screens/qr_code.dart';
 
@@ -39,7 +40,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: Scaffold(body: Collections()),
+      home: Scaffold(body: Memories()),
     );
   }
 }
