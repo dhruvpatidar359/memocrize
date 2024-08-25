@@ -45,6 +45,7 @@ dependencies:
   gap: ^3.0.1
   get_it: ^7.7.0
   watch_it: ^1.4.2
+  rive: ^0.13.12
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +80,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/
 
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages

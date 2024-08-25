@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 
 class CollectionModel extends ChangeNotifier {
-  int _selectedCollectionIndex = 0;
-  String? _selectedCollection;
+  int? _selectedCollectionIndex = null;
+  String? _selectedCollection = "Relax";
 
-  int get selectedCollectionIndex => _selectedCollectionIndex;
+  int? get selectedCollectionIndex => _selectedCollectionIndex;
   String? get selectedCollection => _selectedCollection;
 
-  void setSelectedCollectionIndex(int index) {
+  void setSelectedCollectionIndex(int? index) {
     _selectedCollectionIndex = index;
     notifyListeners();
   }

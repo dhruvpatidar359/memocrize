@@ -1,11 +1,12 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:gap/gap.dart';
 import 'package:glossy/glossy.dart';
 import 'package:memotips/models/CollectionMode.dart';
+import 'package:rive/rive.dart' as rive;
 import 'package:watch_it/watch_it.dart';
+
+final getIt = GetIt.instance;
 
 class Collections extends WatchingStatefulWidget {
   const Collections({super.key});
@@ -64,98 +65,166 @@ class _CollectionsState extends State<Collections> {
       color: Colors.black,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10.0, 40, 10, 0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(child: SearchBar()),
-                Gap(10),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      isGrid = !isGrid;
-                    });
-                  },
-                  child: GlossyContainer(
-                    height: 50,
-                    width: 50,
-                    color: Colors.white60.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border(),
-                    child: Center(
-                      child: Icon(
-                        isGrid ? Icons.grid_view : Icons.table_rows,
-                        color: Colors.grey,
-                      ),
-                    ),
+        child: selectedTitle != null &&
+                collectionsData.any((collection) =>
+                    collection['title'] == selectedTitle &&
+                    collection['items'].isEmpty)
+            ? Center(
+                child: Text(
+                  '404 Not Found',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ],
-            ),
-            Gap(15),
-            isGrid ? buildGridView() : buildRowView(),
-            Gap(15),
-            Expanded(
-              // Removed unnecessary Expanded widget here
-              child: selectedItemIndex != null
-                  ? buildSwipeableItem(selectedItemIndex!)
-                  : buildMasonryGrid(),
-            ),
-          ],
-        ),
+              )
+            : Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(child: SearchBar()),
+                      Gap(10),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            isGrid = !isGrid;
+                          });
+                        },
+                        child: GlossyContainer(
+                          height: 50,
+                          width: 50,
+                          color: Colors.white60.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border(),
+                          child: Center(
+                            child: Icon(
+                              isGrid ? Icons.grid_view : Icons.table_rows,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Gap(15),
+                  isGrid ? buildGridView() : buildRowView(),
+                  Gap(15),
+                  Expanded(
+                    // Removed unnecessary Expanded widget here
+                    child: selectedItemIndex != null
+                        ? buildSwipeableItem(selectedItemIndex!)
+                        : buildMasonryGrid(),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
   // Separate function for MasonryGridView
   Widget buildMasonryGrid() {
-    return MasonryGridView.count(
-      crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      itemCount: (selectedTitle == null
-                  ? collectionsData
-                  : collectionsData.firstWhere((collection) =>
-                      collection['title'] == selectedTitle)['items'])
-              .length +
-          1, // Including "Create a Collection"
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return CreateCollectionCard();
-        }
+    String? selectedTitle = watchPropertyValue(
+        (CollectionModel x) => x.selectedCollection); // Track the selected card
 
-        final collectionItems = selectedTitle == null
-            ? collectionsData[index - 1]['items']
-            : collectionsData.firstWhere(
-                (collection) => collection['title'] == selectedTitle)['items'];
+    // Check if selectedTitle is not null before using firstWhere
+    if (selectedTitle != null) {
+      final selectedCollection = collectionsData.firstWhere(
+        (collection) => collection['title'] == selectedTitle,
+        orElse: () =>
+            {}, // Provide an empty object if no matching collection found
+      );
 
-        final adjustedIndex = selectedTitle == null ? index - 1 : index - 1;
+      // Check if the collection has items
+      if (selectedCollection['items'] != null &&
+          selectedCollection['items'].isNotEmpty) {
+        return MasonryGridView.count(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          itemCount: selectedCollection['items'].length +
+              1, // Including "Create a Collection"
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return CreateCollectionCard();
+            }
 
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              selectedItemIndex = adjustedIndex;
-            });
+            final collectionItems = selectedCollection['items'];
+            final adjustedIndex = index - 1;
+
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  getIt<CollectionModel>()
+                      .setSelectedCollectionIndex(adjustedIndex);
+                });
+              },
+              child: buildGridItem(collectionItems, adjustedIndex),
+            );
           },
-          child: buildGridItem(collectionItems, adjustedIndex),
         );
-      },
-    );
+      } else {
+        // Show 404 if no items are found in the collection
+        return Center(
+            child: rive.RiveAnimation.asset(
+          'assets/folder.riv',
+        ));
+      }
+    } else {
+      // Handle the case where selectedTitle is null (no collection selected)
+      return MasonryGridView.count(
+        crossAxisCount: 2,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        itemCount:
+            collectionsData.length + 1, // Including "Create a Collection"
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return CreateCollectionCard();
+          }
+
+          final collectionItems = collectionsData[index - 1]['items'];
+          final adjustedIndex = index - 1;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                getIt<CollectionModel>()
+                    .setSelectedCollection(collectionsData[index - 1]['title']);
+                getIt<CollectionModel>()
+                    .setSelectedCollectionIndex(adjustedIndex);
+              });
+            },
+            child: buildGridItem(collectionItems, adjustedIndex),
+          );
+        },
+      );
+    }
   }
 
   Widget buildGridItem(List<dynamic> collectionItems, int adjustedIndex) {
     final item = collectionItems[adjustedIndex];
 
     if (item['type'] == 'text') {
-      return TextItemCard(item: item['content']);
+      return TextItemCard(
+        item: item['content'],
+        index: adjustedIndex,
+      );
     } else if (item['type'] == 'image') {
-      return ImageItemCard(imagePath: item['content']);
+      return ImageItemCard(
+        imagePath: item['content'],
+        index: adjustedIndex,
+      );
     }
 
     return Container();
   }
 
   Widget buildSwipeableItem(int initialIndex) {
+    String? selectedTitle = watchPropertyValue(
+        (CollectionModel x) => x.selectedCollection); // Track the selected card
+    int? selectedItemIndex = watchPropertyValue((CollectionModel x) =>
+        x.selectedCollectionIndex); // Track the selected item index
     print("working");
     final selectedCollection = collectionsData.firstWhere(
       (collection) => collection['title'] == selectedTitle,
@@ -163,25 +232,47 @@ class _CollectionsState extends State<Collections> {
 
     PageController _pageController = PageController(initialPage: initialIndex);
 
-    return PageView.builder(
-      controller: _pageController,
-      itemCount: selectedCollection.length,
-      scrollDirection: Axis.vertical,
-      itemBuilder: (context, index) {
-        final item = selectedCollection[index];
-        return Center(
-          child: buildGridItem(selectedCollection, index),
-        );
-      },
-      onPageChanged: (index) {
-        setState(() {
-          selectedItemIndex = index;
-        });
-      },
-    );
+    return Stack(children: [
+      PageView.builder(
+        controller: _pageController,
+        itemCount: selectedCollection.length,
+        scrollDirection: Axis.vertical,
+        itemBuilder: (context, index) {
+          final item = selectedCollection[index];
+          return Center(
+            child: buildGridItem(selectedCollection, index),
+          );
+        },
+        onPageChanged: (index) {
+          getIt<CollectionModel>().setSelectedCollectionIndex(index);
+        },
+      ),
+      Align(
+        alignment: Alignment(-0.95, -0.95),
+        child: Container(
+          height: 40,
+          width: 40,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(100),
+              color: Colors.black.withOpacity(0.2)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(3.0, 0, 0, 0),
+            child: IconButton(
+                onPressed: () {
+                  getIt<CollectionModel>().setSelectedCollectionIndex(null);
+                },
+                icon: Icon(Icons.arrow_back_ios, color: Color(0xffFF8484))),
+          ),
+        ),
+      ),
+    ]);
   }
 
   Widget buildRowView() {
+    String? selectedTitle = watchPropertyValue(
+        (CollectionModel x) => x.selectedCollection); // Track the selected card
+    int? selectedItemIndex = watchPropertyValue((CollectionModel x) =>
+        x.selectedCollectionIndex); // Track the selected item index
     return SizedBox(
       height: 70, // Adjust this value as needed
       child: SingleChildScrollView(
@@ -195,11 +286,10 @@ class _CollectionsState extends State<Collections> {
                 icon: collection['icon'],
                 isSelected: selectedTitle == collection['title'],
                 onTap: () {
-                  setState(() {
-                    selectedTitle = collection['title'];
-                    selectedItemIndex =
-                        null; // Reset selected item on card change
-                  });
+                  getIt<CollectionModel>()
+                      .setSelectedCollection(collection['title']);
+
+                  getIt<CollectionModel>().setSelectedCollectionIndex(null);
                 },
               ),
             );
@@ -210,6 +300,10 @@ class _CollectionsState extends State<Collections> {
   }
 
   Widget buildGridView() {
+    String? selectedTitle = watchPropertyValue(
+        (CollectionModel x) => x.selectedCollection); // Track the selected card
+    int? selectedItemIndex = watchPropertyValue((CollectionModel x) =>
+        x.selectedCollectionIndex); // Track the selected item index
     return Expanded(
       child: GridView.builder(
         shrinkWrap: true,
@@ -228,10 +322,11 @@ class _CollectionsState extends State<Collections> {
             icon: collection['icon'],
             isSelected: selectedTitle == collection['title'],
             onTap: () {
-              setState(() {
-                selectedTitle = collection['title'];
-                selectedItemIndex = null; // Reset selected item on card change
-              });
+              getIt<CollectionModel>()
+                  .setSelectedCollection(collection['title']);
+              // selectedTitle = collection['title'];
+              getIt<CollectionModel>().setSelectedCollectionIndex(null);
+              // selectedItemIndex = null; // Reset selected item on card change
             },
           );
         },
@@ -242,14 +337,17 @@ class _CollectionsState extends State<Collections> {
 
 class ImageItemCard extends StatelessWidget {
   final String imagePath;
+  final int index;
 
-  const ImageItemCard({required this.imagePath, Key? key}) : super(key: key);
+  const ImageItemCard({required this.imagePath, required this.index, Key? key})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         // Logic for tapping on the image item
+        getIt<CollectionModel>().setSelectedCollectionIndex(index);
       },
       child: AspectRatio(
         aspectRatio: 16 / 9, // You can adjust this ratio as needed
@@ -357,14 +455,16 @@ class CreateCollectionCard extends StatelessWidget {
 
 class TextItemCard extends StatelessWidget {
   final String item;
+  final int index;
 
-  const TextItemCard({required this.item});
+  const TextItemCard({required this.item, required this.index});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
         // Logic for tapping on the text item
+        getIt<CollectionModel>().setSelectedCollectionIndex(index);
       },
       child: Container(
         decoration: BoxDecoration(
