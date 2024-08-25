@@ -6,7 +6,7 @@ import 'package:get_it/get_it.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:memotips/navigation/bottomNavigation.dart';
-import 'package:memotips/screens/collections.dart';
+import 'package:memotips/screens/Collections/collections.dart';
 import 'package:memotips/screens/home.dart';
 import 'package:memotips/screens/qr_code.dart';
 

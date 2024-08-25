@@ -2,7 +2,7 @@ import 'package:floating_navbar/floating_navbar.dart';
 import 'package:floating_navbar/floating_navbar_item.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:memotips/screens/collections.dart';
+import 'package:memotips/screens/Collections/collections.dart';
 import 'package:memotips/screens/home.dart';
 
 class BottomNavigation extends StatefulWidget {
