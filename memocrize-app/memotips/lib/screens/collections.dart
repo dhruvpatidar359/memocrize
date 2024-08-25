@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:gap/gap.dart';
 import 'package:glossy/glossy.dart';
+import 'package:memotips/models/CollectionMode.dart';
+import 'package:watch_it/watch_it.dart';
 
-class Collections extends StatefulWidget {
+class Collections extends WatchingStatefulWidget {
   const Collections({super.key});
 
   @override
@@ -22,11 +24,42 @@ class _CollectionsState extends State<Collections> {
     {"title": "Workout", "icon": Icons.fitness_center},
   ];
 
+  final List<Map<String, dynamic>> collectionsData = [
+    {
+      "title": "Relax",
+      "icon": Icons.spa,
+      "items": [
+        {
+          "type": "text",
+          "content":
+              "Breathe deepldskafjnalkdjfbglkdajbglk jbldkf gblkdfa jblkgjdbfalkgbdflkagblkfdjgblkfdgbjky"
+        },
+        {"type": "image", "content": "assets/images/img.png"},
+        {"type": "link", "content": "https://google.com"},
+      ]
+    },
+    {
+      "title": "Focus",
+      "icon": Icons.self_improvement,
+      "items": [
+        {"type": "text", "content": "Stay focused"},
+        {"type": "image", "content": "assets/images/img.png"},
+        {"type": "link", "content": "https://google.com"},
+        {"type": "text", "content": "Think about what is important"},
+      ]
+    },
+    // Add more collections as needed
+  ];
+
   bool isGrid = false; // Toggle state
-  String? selectedTitle; // Track the selected card
 
   @override
   Widget build(BuildContext context) {
+    String? selectedTitle = watchPropertyValue(
+        (CollectionModel x) => x.selectedCollection); // Track the selected card
+    int? selectedItemIndex = watchPropertyValue((CollectionModel x) =>
+        x.selectedCollectionIndex); // Track the selected item index
+
     return Container(
       color: Colors.black,
       child: Padding(
@@ -61,55 +94,90 @@ class _CollectionsState extends State<Collections> {
             ),
             Gap(15),
             isGrid ? buildGridView() : buildRowView(),
-            // if (selectedTitle != null) ...[
-            //   Gap(20),
-            //   Text(
-            //     "Selected: $selectedTitle",
-            //     style: TextStyle(color: Colors.white, fontSize: 18),
-            //   ),
-            // ],
+            Gap(15),
             Expanded(
-              child: MasonryGridView.count(
-                crossAxisCount: 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                itemCount: collections.length * 2,
-                itemBuilder: (context, index) {
-                  // var collection = collections[index];
-                  return Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      color: Colors.white60.withOpacity(0.15),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Create a",
-                          style: TextStyle(
-                              fontSize: 18,
-                              height: 0.8,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                        Text(
-                          "Collection",
-                          style: TextStyle(
-                              color: Color(0xffFF8484),
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold),
-                        )
-                      ],
-                    ),
-                  );
-                },
-              ),
-            )
+              // Removed unnecessary Expanded widget here
+              child: selectedItemIndex != null
+                  ? buildSwipeableItem(selectedItemIndex!)
+                  : buildMasonryGrid(),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  // Separate function for MasonryGridView
+  Widget buildMasonryGrid() {
+    return MasonryGridView.count(
+      crossAxisCount: 2,
+      mainAxisSpacing: 10,
+      crossAxisSpacing: 10,
+      itemCount: (selectedTitle == null
+                  ? collectionsData
+                  : collectionsData.firstWhere((collection) =>
+                      collection['title'] == selectedTitle)['items'])
+              .length +
+          1, // Including "Create a Collection"
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return CreateCollectionCard();
+        }
+
+        final collectionItems = selectedTitle == null
+            ? collectionsData[index - 1]['items']
+            : collectionsData.firstWhere(
+                (collection) => collection['title'] == selectedTitle)['items'];
+
+        final adjustedIndex = selectedTitle == null ? index - 1 : index - 1;
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              selectedItemIndex = adjustedIndex;
+            });
+          },
+          child: buildGridItem(collectionItems, adjustedIndex),
+        );
+      },
+    );
+  }
+
+  Widget buildGridItem(List<dynamic> collectionItems, int adjustedIndex) {
+    final item = collectionItems[adjustedIndex];
+
+    if (item['type'] == 'text') {
+      return TextItemCard(item: item['content']);
+    } else if (item['type'] == 'image') {
+      return ImageItemCard(imagePath: item['content']);
+    }
+
+    return Container();
+  }
+
+  Widget buildSwipeableItem(int initialIndex) {
+    print("working");
+    final selectedCollection = collectionsData.firstWhere(
+      (collection) => collection['title'] == selectedTitle,
+    )['items'];
+
+    PageController _pageController = PageController(initialPage: initialIndex);
+
+    return PageView.builder(
+      controller: _pageController,
+      itemCount: selectedCollection.length,
+      scrollDirection: Axis.vertical,
+      itemBuilder: (context, index) {
+        final item = selectedCollection[index];
+        return Center(
+          child: buildGridItem(selectedCollection, index),
+        );
+      },
+      onPageChanged: (index) {
+        setState(() {
+          selectedItemIndex = index;
+        });
+      },
     );
   }
 
@@ -129,6 +197,8 @@ class _CollectionsState extends State<Collections> {
                 onTap: () {
                   setState(() {
                     selectedTitle = collection['title'];
+                    selectedItemIndex =
+                        null; // Reset selected item on card change
                   });
                 },
               ),
@@ -160,10 +230,180 @@ class _CollectionsState extends State<Collections> {
             onTap: () {
               setState(() {
                 selectedTitle = collection['title'];
+                selectedItemIndex = null; // Reset selected item on card change
               });
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class ImageItemCard extends StatelessWidget {
+  final String imagePath;
+
+  const ImageItemCard({required this.imagePath, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Logic for tapping on the image item
+      },
+      child: AspectRatio(
+        aspectRatio: 16 / 9, // You can adjust this ratio as needed
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            color: Colors.grey[300], // Placeholder color
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                FittedBox(
+                  fit: BoxFit.cover,
+                  child: Image.asset(
+                    imagePath,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(child: Icon(Icons.error));
+                    },
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.5)
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: PopupMenuButton<String>(
+                    onSelected: (value) {
+                      // Handle actions here: delete, rename, move, etc.
+                    },
+                    itemBuilder: (BuildContext context) {
+                      return ['Delete', 'Rename', 'Move'].map((String choice) {
+                        return PopupMenuItem<String>(
+                          value: choice,
+                          child: Text(choice),
+                        );
+                      }).toList();
+                    },
+                    icon: Icon(Icons.more_vert, color: Colors.white),
+                    tooltip: 'More options',
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class CreateCollectionCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Logic for creating a new collection
+      },
+      child: Container(
+        height: 150,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.white60.withOpacity(0.15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Create a",
+              style: TextStyle(
+                fontSize: 18,
+                height: 0.8,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              "Collection",
+              style: TextStyle(
+                color: Color(0xffFF8484),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class TextItemCard extends StatelessWidget {
+  final String item;
+
+  const TextItemCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Logic for tapping on the text item
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.white,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8.0, 8, 8, 0),
+              child: Center(
+                child: Text(
+                  textAlign: TextAlign.center,
+                  item,
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                // Handle actions here: delete, rename, move, etc.
+              },
+              itemBuilder: (BuildContext context) {
+                return ['Delete', 'Rename', 'Move'].map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+              icon: Icon(Icons.more_vert, color: Colors.black),
+            ),
+          ],
+        ),
       ),
     );
   }
