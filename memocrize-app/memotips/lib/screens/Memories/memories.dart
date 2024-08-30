@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:memotips/screens/Collections/serach.dart';
 import 'package:memotips/screens/Collections/cards.dart';
 
 class Memories extends StatefulWidget {
@@ -65,7 +64,7 @@ class _MemoriesState extends State<Memories> {
           children: [
             Row(
               children: [
-                Expanded(child: SearchBarCollections()),
+                // Expanded(child: SearchBarCollections()),
                 IconButton(
                   onPressed: () {
                     setState(() {
@@ -105,8 +104,11 @@ class _MemoriesState extends State<Memories> {
                           return Padding(
                             padding: const EdgeInsets.fromLTRB(4.0, 10, 4, 10),
                             child: TextItemCard(
+                              callBack: () {
+                                setState(() {});
+                              },
                               index: index,
-                              item: item['content'],
+                              filePath: item['content'],
                             ),
                           );
                         } else if (item['type'] == 'image') {
