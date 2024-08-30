@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:glossy/glossy.dart';
 
+import 'package:get_it/get_it.dart';
+
+final getIt = GetIt.instance;
+
 class SearchBarCollections extends StatefulWidget {
+  final Function(String) onSearch;
+
+  const SearchBarCollections({Key? key, required this.onSearch})
+      : super(key: key);
+
   @override
   _SearchBarCollectionsState createState() => _SearchBarCollectionsState();
 }
 
 class _SearchBarCollectionsState extends State<SearchBarCollections> {
   final TextEditingController _controller = TextEditingController();
-
-  void _handleSearch(String query) {
-    print("Search query: $query");
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +43,8 @@ class _SearchBarCollectionsState extends State<SearchBarCollections> {
                 hintText: 'Search...',
                 border: InputBorder.none,
               ),
-              onSubmitted: (String query) {
-                _handleSearch(query);
-                _controller.clear();
+              onChanged: (String query) {
+                widget.onSearch(query);
               },
             ),
           ),
