@@ -147,11 +147,12 @@ class _CollectionsState extends State<Collections> {
             Gap(15),
             isGrid ? buildGridView() : buildRowView(),
             Gap(15),
-            Expanded(
-              child: selectedItemIndex != null
-                  ? buildSwipeableItem(selectedItemIndex!)
-                  : buildMasonryGrid(),
-            ),
+            if (!isGrid)
+              Expanded(
+                child: selectedItemIndex != null
+                    ? buildSwipeableItem(selectedItemIndex!)
+                    : buildMasonryGrid(),
+              ),
           ],
         ),
       ),
@@ -171,51 +172,94 @@ class _CollectionsState extends State<Collections> {
 
       if (selectedCollection['items'] != null &&
           selectedCollection['items'].isNotEmpty) {
-        return MasonryGridView.count(
-          crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          itemCount: selectedCollection['items'].length +
-              1, // Including "Create a Collection"
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return CreateCollectionCard(
-                onCollectionCreated: () {
-                  // Refresh the collections list
+        return GestureDetector(
+          onHorizontalDragEnd: (details) {
+            // Get the current index of the selected collection
+            int currentIndex = collections.indexWhere(
+                (collection) => collection['title'] == selectedTitle);
+
+            if (details.primaryVelocity! < 0) {
+              // Swipe Right
+              int nextIndex = (currentIndex + 1) % collections.length;
+              getIt<CollectionModel>()
+                  .setSelectedCollection(collections[nextIndex]['title']);
+            } else if (details.primaryVelocity! > 0) {
+              // Swipe Left
+              int prevIndex =
+                  (currentIndex - 1 + collections.length) % collections.length;
+              getIt<CollectionModel>()
+                  .setSelectedCollection(collections[prevIndex]['title']);
+            }
+          },
+          child: MasonryGridView.count(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            itemCount: selectedCollection['items'].length +
+                1, // Including "Create a Collection"
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return CreateCollectionCard(
+                  height: 150,
+                  width: MediaQuery.sizeOf(context).width,
+                  onCollectionCreated: () {
+                    // Refresh the collections list
+                    setState(() {
+                      fetchCollections();
+                    });
+                  },
+                );
+              }
+
+              // final collection = collections[index - 1]; // Adjust index
+
+              return GestureDetector(
+                onTap: () {
                   setState(() {
-                    fetchCollections();
+                    getIt<CollectionModel>()
+                        .setSelectedCollection(selectedCollection['title']);
+                    getIt<CollectionModel>()
+                        .setSelectedCollectionIndex(index - 1);
                   });
                 },
+                child: buildGridItem(
+                    selectedCollection['items'], index - 1), // Adjust index
               );
-            }
-
-            // final collection = collections[index - 1]; // Adjust index
-
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  getIt<CollectionModel>()
-                      .setSelectedCollection(selectedCollection['title']);
-                  getIt<CollectionModel>()
-                      .setSelectedCollectionIndex(index - 1);
-                });
-              },
-              child: buildGridItem(
-                  selectedCollection['items'], index - 1), // Adjust index
-            );
-          },
+            },
+          ),
         );
       } else {
         return Center(
-          child: Text(
-            '404 Not Found',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+            child: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            // Get the current index of the selected collection
+            int currentIndex = collections.indexWhere(
+                (collection) => collection['title'] == selectedTitle);
+
+            if (details.primaryVelocity! < 0) {
+              // Swipe Right
+              int nextIndex = (currentIndex + 1) % collections.length;
+              getIt<CollectionModel>()
+                  .setSelectedCollection(collections[nextIndex]['title']);
+            } else if (details.primaryVelocity! > 0) {
+              // Swipe Left
+              int prevIndex =
+                  (currentIndex - 1 + collections.length) % collections.length;
+              getIt<CollectionModel>()
+                  .setSelectedCollection(collections[prevIndex]['title']);
+            }
+          },
+          child: CreateCollectionCard(
+            width: MediaQuery.sizeOf(context).width,
+            height: MediaQuery.sizeOf(context).height,
+            onCollectionCreated: () {
+              // Refresh the collections list
+              setState(() {
+                fetchCollections();
+              });
+            },
           ),
-        );
+        ));
       }
     } else {
       return Container();
@@ -236,15 +280,9 @@ class _CollectionsState extends State<Collections> {
     } else if (item['type'] == 'image') {
       return ImageItemCard(
         callBack: (action) {
-          if (action == 'delete') {
-            setState(() {
-              collectionItems.removeAt(adjustedIndex);
-            });
-          } else {
-            setState(() {
-              fetchCollections(); // Refetch collections on rename or move
-            });
-          }
+          setState(() {
+            fetchCollections(); // Refetch collections on rename or move
+          });
         },
         filePath: item['content'],
         index: adjustedIndex,
@@ -266,42 +304,45 @@ class _CollectionsState extends State<Collections> {
       PageController _pageController =
           PageController(initialPage: initialIndex);
 
-      return Stack(children: [
-        PageView.builder(
-          controller: _pageController,
-          itemCount: selectedCollection['items'].length,
-          scrollDirection: Axis.vertical,
-          itemBuilder: (context, index) {
-            final item = selectedCollection['items'][index];
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(0.0, 8, 0, 0),
-              child: Center(
-                child: buildGridItem(selectedCollection['items'], index),
+      return Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: selectedCollection['items'].length,
+            scrollDirection: Axis.vertical,
+            itemBuilder: (context, index) {
+              final item = selectedCollection['items'][index];
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(0.0, 8, 0, 0),
+                child: Center(
+                  child: buildGridItem(selectedCollection['items'], index),
+                ),
+              );
+            },
+            onPageChanged: (index) {
+              getIt<CollectionModel>().setSelectedCollectionIndex(index);
+            },
+          ),
+          Align(
+            alignment: Alignment(-0.95, -0.95),
+            child: Container(
+              height: 40,
+              width: 40,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(100),
+                  color: Colors.black),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4.0, 0, 0, 0),
+                child: IconButton(
+                    onPressed: () {
+                      getIt<CollectionModel>().setSelectedCollectionIndex(null);
+                    },
+                    icon: Icon(Icons.arrow_back_ios, color: Colors.white)),
               ),
-            );
-          },
-          onPageChanged: (index) {
-            getIt<CollectionModel>().setSelectedCollectionIndex(index);
-          },
-        ),
-        Align(
-          alignment: Alignment(-0.95, -0.95),
-          child: Container(
-            height: 40,
-            width: 40,
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(100), color: Colors.black),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(4.0, 0, 0, 0),
-              child: IconButton(
-                  onPressed: () {
-                    getIt<CollectionModel>().setSelectedCollectionIndex(null);
-                  },
-                  icon: Icon(Icons.arrow_back_ios, color: Colors.white)),
             ),
           ),
-        ),
-      ]);
+        ],
+      );
     }
 
     return Container(); // Return an empty container if selectedTitle is null
@@ -318,18 +359,22 @@ class _CollectionsState extends State<Collections> {
           mainAxisAlignment: MainAxisAlignment.start,
           children: filteredCollections.map((collection) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(0.0, 0, 8, 0),
-              child: CollectionCard(
-                title: collection['title'],
-                icon: collection['icon'],
-                isSelected: selectedTitle == collection['title'],
-                onTap: () {
-                  getIt<CollectionModel>()
-                      .setSelectedCollection(collection['title']);
-                  getIt<CollectionModel>().setSelectedCollectionIndex(null);
-                },
-              ),
-            );
+                padding: const EdgeInsets.fromLTRB(0.0, 0, 8, 0),
+                child: CollectionCard(
+                  title: collection['title'],
+                  icon: collection['icon'],
+                  isSelected: selectedTitle == collection['title'],
+                  onTap: () {
+                    getIt<CollectionModel>()
+                        .setSelectedCollection(collection['title']);
+                    getIt<CollectionModel>().setSelectedCollectionIndex(null);
+                  },
+                  onRename: () {
+                    setState(() {
+                      fetchCollections(); // Refetch collections to reflect changes
+                    });
+                  },
+                ));
           }).toList(),
         ),
       ),
@@ -360,6 +405,11 @@ class _CollectionsState extends State<Collections> {
               getIt<CollectionModel>()
                   .setSelectedCollection(collection['title']);
               getIt<CollectionModel>().setSelectedCollectionIndex(null);
+            },
+            onRename: () {
+              setState(() {
+                fetchCollections(); // Refetch collections to reflect changes
+              });
             },
           );
         },

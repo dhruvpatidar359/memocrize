@@ -9,8 +9,14 @@ final getIt = GetIt.instance;
 
 class CreateCollectionCard extends StatelessWidget {
   final Function() onCollectionCreated;
+  final double height;
+  final double width;
 
-  const CreateCollectionCard({Key? key, required this.onCollectionCreated})
+  const CreateCollectionCard(
+      {Key? key,
+      required this.onCollectionCreated,
+      required this.height,
+      required this.width})
       : super(key: key);
 
   Future<void> _showCreateCollectionDialog(BuildContext context) async {
@@ -105,7 +111,8 @@ class CreateCollectionCard extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showCreateCollectionDialog(context),
       child: Container(
-        height: 150,
+        height: height,
+        width: width,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
           color: Colors.white60.withOpacity(0.15),
@@ -143,18 +150,197 @@ class CollectionCard extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback
+      onRename; // Add this callback if you need to update parent state after renaming or deleting
 
   const CollectionCard({
     required this.title,
     required this.icon,
     required this.isSelected,
     required this.onTap,
+    required this.onRename, // Add this callback if needed
     super.key,
   });
+
+  Future<void> renameCollection(BuildContext context) async {
+    final TextEditingController controller = TextEditingController();
+    String newName = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          title: Text(
+            'Rename Collection',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            cursorColor: Colors.white,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter new collection name',
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xffFF8484)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xffFF8484)),
+              ),
+              hintStyle: TextStyle(color: Colors.white),
+            ),
+            onChanged: (value) {
+              newName = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                if (newName.isNotEmpty) {
+                  try {
+                    final appDocDir = await getApplicationDocumentsDirectory();
+                    final collectionsDir =
+                        Directory('${appDocDir.path}/Collections');
+                    final oldDir = Directory('${collectionsDir.path}/$title');
+                    final newDir = Directory('${collectionsDir.path}/$newName');
+
+                    if (await oldDir.exists()) {
+                      await oldDir.rename(newDir.path);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Collection renamed to $newName')),
+                      );
+                      onRename(); // Trigger callback after renaming
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error renaming collection: $e')),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                'Rename',
+                style: TextStyle(color: Color(0xffFF8484)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> deleteCollection(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          title: Text(
+            'Delete Collection',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: Text(
+            'Are you sure you want to delete this collection?',
+            style: TextStyle(color: Colors.white),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                try {
+                  final appDocDir = await getApplicationDocumentsDirectory();
+                  final collectionsDir =
+                      Directory('${appDocDir.path}/Collections');
+                  final dirToDelete =
+                      Directory('${collectionsDir.path}/$title');
+
+                  if (await dirToDelete.exists()) {
+                    await dirToDelete.delete(recursive: true);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Collection deleted')),
+                    );
+                    onRename(); // Trigger callback after deleting
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error deleting collection: $e')),
+                  );
+                }
+              },
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Color(0xffFF8484)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onLongPress: () {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              backgroundColor: Colors.black,
+              surfaceTintColor: Colors.black,
+              title: Text(
+                'Options',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.edit, color: Colors.white),
+                    title:
+                        Text('Rename', style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      renameCollection(context);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.delete, color: Colors.white),
+                    title:
+                        Text('Delete', style: TextStyle(color: Colors.white)),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      deleteCollection(context);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
       onTap: onTap,
       child: Container(
         constraints: BoxConstraints(minWidth: 100),
@@ -186,7 +372,7 @@ class CollectionCard extends StatelessWidget {
               SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  title,
+                  title.length < 20 ? title : title.substring(0, 20) + "...",
                   style: TextStyle(color: Colors.white),
                 ),
               ),
