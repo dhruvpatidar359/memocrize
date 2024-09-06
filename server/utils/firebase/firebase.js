@@ -12,7 +12,7 @@ const bucketName = 'memocrize-5847e.appspot.com';
 // Get the bucket object
 const bucket = storage.bucket(bucketName);
 
-var serviceAccount = require("./memocrize-5847e-firebase-adminsdk-p4zl9-c9239337e8.json");
+var serviceAccount = require("../../memocrize-5847e-firebase-adminsdk-p4zl9-c9239337e8.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),

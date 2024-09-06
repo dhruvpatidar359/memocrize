@@ -2,7 +2,6 @@ const admin = require('firebase-admin'); // Import admin from Firebase Admin SDK
 
 const { db, bucket } = require('../utils/firebase/firebase');
 const { v4: uuidv4 } = require('uuid');
-// const textToImage = require('some-text-to-image-lib'); // Replace with the actual library
 
 const uploadImage = async (req, res) => {
     const { base64Image, collectionName, userId } = req.body;
@@ -57,8 +56,23 @@ const uploadText = async (req, res) => {
     }
 
     const uniqueFileName = `${uuidv4()}`;
+    const textContent = text;
+    const destination = `${uniqueFileName}.txt`;
 
     try {
+
+        const file = bucket.file(destination);
+        await file.save(textContent,{
+            metadata: {
+                contentType: 'text/plain',
+            },
+        });
+
+        const [url] = await file.getSignedUrl({
+            action: 'read',
+            expires: '03-01-2500',
+          });
+
         const textCollection = db.collection('users').doc(userId);
         const userText = textCollection.collection(collectionName);
 
@@ -70,13 +84,15 @@ const uploadText = async (req, res) => {
         await userTextCollection.set({
             datatype: "text",
             fileName: uniqueFileName,
-            text: text
+            fileUrl: url,
+            uploadTimestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        return res.send("text saved");  
+        return res.send(`${url}`);  
 
     }
     catch(error){
+        console.log(error);
         return res.status(400).send("Unable to store text");
     }
 }
