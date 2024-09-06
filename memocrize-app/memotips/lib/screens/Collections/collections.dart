@@ -7,7 +7,7 @@ import 'package:glossy/glossy.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:memotips/screens/Collections/serach.dart';
 import 'package:memotips/screens/Collections/cards.dart';
-import 'package:rive/rive.dart' as rive;
+
 import 'package:watch_it/watch_it.dart';
 import 'package:path_provider/path_provider.dart'; // Import path_provider
 import 'package:image_picker/image_picker.dart'; // Import image_picker
@@ -31,6 +31,17 @@ class _CollectionsState extends State<Collections> {
   final List<Map<String, dynamic>> collections = [];
   String searchQuery = '';
   List<Map<String, dynamic>> filteredCollections = [];
+  final ScrollController _scrollController = ScrollController();
+  void _scrollToSelected(int index) {
+    // Calculate the offset to center the selected item
+    final double offset =
+        (index * 100) - (MediaQuery.of(context).size.width / 2) + 50;
+    _scrollController.animateTo(
+      offset,
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
 
   void searchCollections(String query) {
     setState(() {
@@ -110,50 +121,54 @@ class _CollectionsState extends State<Collections> {
     int? selectedItemIndex = watchPropertyValue((CollectionModel x) =>
         x.selectedCollectionIndex); // Track the selected item index
 
-    return Container(
-      color: Colors.black,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10.0, 40, 10, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                    child: SearchBarCollections(onSearch: searchCollections)),
-                Gap(10),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      isGrid = !isGrid;
-                    });
-                  },
-                  child: GlossyContainer(
-                    height: 50,
-                    width: 50,
-                    color: Colors.white60.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(15),
-                    border: Border(),
-                    child: Center(
-                      child: Icon(
-                        isGrid ? Icons.grid_view : Icons.table_rows,
-                        color: Colors.grey,
-                      ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Container(
+        color: Colors.black,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10.0, 40, 10, 0),
+          child: selectedItemIndex == null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                            child: SearchBarCollections(
+                                onSearch: searchCollections)),
+                        Gap(10),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              isGrid = !isGrid;
+                            });
+                          },
+                          child: GlossyContainer(
+                            height: 50,
+                            width: 50,
+                            color: Colors.white60.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border(),
+                            child: Center(
+                              child: Icon(
+                                isGrid ? Icons.grid_view : Icons.table_rows,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
-              ],
-            ),
-            Gap(15),
-            isGrid ? buildGridView() : buildRowView(),
-            Gap(15),
-            if (!isGrid)
-              Expanded(
-                child: selectedItemIndex != null
-                    ? buildSwipeableItem(selectedItemIndex!)
-                    : buildMasonryGrid(),
-              ),
-          ],
+                    Gap(15),
+                    isGrid ? buildGridView() : buildRowView(),
+                    Gap(15),
+                    if (!isGrid)
+                      Expanded(
+                        child: buildMasonryGrid(),
+                      ),
+                  ],
+                )
+              : buildSwipeableItem(selectedItemIndex!),
         ),
       ),
     );
@@ -196,7 +211,7 @@ class _CollectionsState extends State<Collections> {
             mainAxisSpacing: 10,
             crossAxisSpacing: 10,
             itemCount: selectedCollection['items'].length +
-                1, // Including "Create a Collection"
+                3, // Including "Create a Collection", "CreateTextItem", and "CreateImageItem"
             itemBuilder: (context, index) {
               if (index == 0) {
                 return CreateCollectionCard(
@@ -209,9 +224,23 @@ class _CollectionsState extends State<Collections> {
                     });
                   },
                 );
+              } else if (index == 1) {
+                return CreateTextItem(
+                  onCollectionCreated: () {
+                    fetchCollections();
+                  },
+                  height: MediaQuery.sizeOf(context).height / 4,
+                  width: MediaQuery.sizeOf(context).width / 2,
+                );
+              } else if (index == 2) {
+                return CreateImageItem(
+                  onCollectionCreated: () {
+                    fetchCollections();
+                  },
+                  height: MediaQuery.sizeOf(context).height / 4,
+                  width: MediaQuery.sizeOf(context).width / 2,
+                );
               }
-
-              // final collection = collections[index - 1]; // Adjust index
 
               return GestureDetector(
                 onTap: () {
@@ -219,47 +248,83 @@ class _CollectionsState extends State<Collections> {
                     getIt<CollectionModel>()
                         .setSelectedCollection(selectedCollection['title']);
                     getIt<CollectionModel>()
-                        .setSelectedCollectionIndex(index - 1);
+                        .setSelectedCollectionIndex(index - 3);
                   });
                 },
                 child: buildGridItem(
-                    selectedCollection['items'], index - 1), // Adjust index
+                    selectedCollection['items'], index - 3), // Adjust index
               );
             },
           ),
         );
       } else {
         return Center(
-            child: GestureDetector(
-          onHorizontalDragEnd: (details) {
-            // Get the current index of the selected collection
-            int currentIndex = collections.indexWhere(
-                (collection) => collection['title'] == selectedTitle);
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              // Get the current index of the selected collection
+              int currentIndex = collections.indexWhere(
+                  (collection) => collection['title'] == selectedTitle);
 
-            if (details.primaryVelocity! < 0) {
-              // Swipe Right
-              int nextIndex = (currentIndex + 1) % collections.length;
-              getIt<CollectionModel>()
-                  .setSelectedCollection(collections[nextIndex]['title']);
-            } else if (details.primaryVelocity! > 0) {
-              // Swipe Left
-              int prevIndex =
-                  (currentIndex - 1 + collections.length) % collections.length;
-              getIt<CollectionModel>()
-                  .setSelectedCollection(collections[prevIndex]['title']);
-            }
-          },
-          child: CreateCollectionCard(
-            width: MediaQuery.sizeOf(context).width,
-            height: MediaQuery.sizeOf(context).height,
-            onCollectionCreated: () {
-              // Refresh the collections list
-              setState(() {
-                fetchCollections();
-              });
+              if (details.primaryVelocity! < 0) {
+                // Swipe Right
+                int nextIndex = (currentIndex + 1) % collections.length;
+                getIt<CollectionModel>()
+                    .setSelectedCollection(collections[nextIndex]['title']);
+              } else if (details.primaryVelocity! > 0) {
+                // Swipe Left
+                int prevIndex = (currentIndex - 1 + collections.length) %
+                    collections.length;
+                getIt<CollectionModel>()
+                    .setSelectedCollection(collections[prevIndex]['title']);
+              }
             },
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 1, // This takes half of the available height
+                  child: CreateCollectionCard(
+                    width: MediaQuery.sizeOf(context).width,
+                    height: MediaQuery.sizeOf(context).height,
+                    onCollectionCreated: () {
+                      // Refresh the collections list
+                      setState(() {
+                        fetchCollections();
+                      });
+                    },
+                  ),
+                ),
+                Gap(10),
+                Expanded(
+                  flex:
+                      1, // This takes the remaining half of the available height
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CreateTextItem(
+                          onCollectionCreated: () {
+                            fetchCollections();
+                          },
+                          height: MediaQuery.sizeOf(context).height,
+                          width: MediaQuery.sizeOf(context).width / 2,
+                        ),
+                      ),
+                      Gap(10),
+                      Expanded(
+                        child: CreateImageItem(
+                          onCollectionCreated: () {
+                            fetchCollections();
+                          },
+                          height: MediaQuery.sizeOf(context).height,
+                          width: MediaQuery.sizeOf(context).width / 2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ));
+        );
       }
     } else {
       return Container();
@@ -279,6 +344,32 @@ class _CollectionsState extends State<Collections> {
       );
     } else if (item['type'] == 'image') {
       return ImageItemCard(
+        callBack: (action) {
+          setState(() {
+            fetchCollections(); // Refetch collections on rename or move
+          });
+        },
+        filePath: item['content'],
+        index: adjustedIndex,
+      );
+    }
+
+    return Container();
+  }
+
+  Widget swipeBuildGridItem(List<dynamic> collectionItems, int adjustedIndex) {
+    final item = collectionItems[adjustedIndex];
+
+    if (item['type'] == 'text') {
+      return TextItemCard(
+        callBack: (action) {
+          fetchCollections();
+        },
+        filePath: item['content'],
+        index: adjustedIndex,
+      );
+    } else if (item['type'] == 'image') {
+      return SwipeImageItemCard(
         callBack: (action) {
           setState(() {
             fetchCollections(); // Refetch collections on rename or move
@@ -315,7 +406,7 @@ class _CollectionsState extends State<Collections> {
               return Padding(
                 padding: const EdgeInsets.fromLTRB(0.0, 8, 0, 0),
                 child: Center(
-                  child: buildGridItem(selectedCollection['items'], index),
+                  child: swipeBuildGridItem(selectedCollection['items'], index),
                 ),
               );
             },
@@ -351,30 +442,49 @@ class _CollectionsState extends State<Collections> {
   Widget buildRowView() {
     String? selectedTitle =
         watchPropertyValue((CollectionModel x) => x.selectedCollection);
+
     return SizedBox(
       height: 70,
       child: SingleChildScrollView(
+        controller: _scrollController,
         scrollDirection: Axis.horizontal,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.start,
-          children: filteredCollections.map((collection) {
+          children: filteredCollections.asMap().entries.map((entry) {
+            int index = entry.key;
+            var collection = entry.value;
+            bool isSelected = selectedTitle == collection['title'];
+
             return Padding(
-                padding: const EdgeInsets.fromLTRB(0.0, 0, 8, 0),
+              padding: const EdgeInsets.fromLTRB(0.0, 0, 8, 0),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedTitle = collection['title'];
+                    getIt<CollectionModel>()
+                        .setSelectedCollection(collection['title']);
+                    getIt<CollectionModel>().setSelectedCollectionIndex(null);
+                  });
+                  _scrollToSelected(index); // Center the selected item
+                },
                 child: CollectionCard(
                   title: collection['title'],
                   icon: collection['icon'],
-                  isSelected: selectedTitle == collection['title'],
+                  isSelected: isSelected,
                   onTap: () {
                     getIt<CollectionModel>()
                         .setSelectedCollection(collection['title']);
                     getIt<CollectionModel>().setSelectedCollectionIndex(null);
+                    _scrollToSelected(index); // Center the selected item
                   },
                   onRename: () {
                     setState(() {
                       fetchCollections(); // Refetch collections to reflect changes
                     });
                   },
-                ));
+                ),
+              ),
+            );
           }).toList(),
         ),
       ),

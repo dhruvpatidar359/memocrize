@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:gap/gap.dart';
 import 'package:glossy/glossy.dart';
+import 'package:memotips/screens/Collections/collections.dart';
 import 'package:memotips/screens/home.dart';
 
 class QrCode extends StatefulWidget {
@@ -21,6 +22,12 @@ class _QrCodeState extends State<QrCode> {
           onScan: (result) async {
             // Do something with the result
             print(result.text);
+            // verified once then shift it to the app home
+            Navigator.pushReplacement(context, PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) {
+                return Collections();
+              },
+            ));
           },
         ),
         Align(

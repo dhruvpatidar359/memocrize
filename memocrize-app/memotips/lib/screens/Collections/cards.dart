@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:photo_view/photo_view.dart';
+
+import '../ItemCreation/item-creation.dart';
 
 final getIt = GetIt.instance;
 
@@ -132,6 +135,138 @@ class CreateCollectionCard extends StatelessWidget {
             ),
             Text(
               "Collection",
+              style: TextStyle(
+                color: Color(0xffFF8484),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CreateTextItem extends StatelessWidget {
+  final double height;
+  final double width;
+  final Function() onCollectionCreated;
+
+  const CreateTextItem({
+    Key? key,
+    required this.height,
+    required this.width,
+    required this.onCollectionCreated,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        // Navigate to TextItemCreation and wait for the result
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TextItemCreation(),
+          ),
+        );
+
+        // Check if any changes were made
+        print(result);
+        if (result == true) {
+          // Trigger setState on the parent widget if changes were made
+          onCollectionCreated();
+        }
+      },
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.white60.withOpacity(0.15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Create a",
+              style: TextStyle(
+                fontSize: 18,
+                height: 0.8,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              "Text",
+              style: TextStyle(
+                color: Color(0xffFF8484),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CreateImageItem extends StatelessWidget {
+  final double height;
+  final double width;
+  final Function() onCollectionCreated;
+
+  const CreateImageItem({
+    Key? key,
+    required this.height,
+    required this.width,
+    required this.onCollectionCreated,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        // Navigate to ImageItemCreation and wait for the result
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ImageItemCreation(),
+          ),
+        );
+
+        // Check if any changes were made
+
+        if (result == true) {
+          // Trigger setState on the parent widget if changes were made
+          onCollectionCreated();
+        }
+      },
+      child: Container(
+        height: height,
+        width: width,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.white60.withOpacity(0.15),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Create a",
+              style: TextStyle(
+                fontSize: 18,
+                height: 0.8,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              "Image",
               style: TextStyle(
                 color: Color(0xffFF8484),
                 fontSize: 20,
@@ -673,6 +808,298 @@ class ImageItemCard extends StatelessWidget {
   }
 }
 
+class SwipeImageItemCard extends StatelessWidget {
+  final String filePath;
+  final int index;
+  final void Function(String action) callBack; // Updated to accept action
+
+  const SwipeImageItemCard({
+    required this.filePath,
+    required this.index,
+    required this.callBack,
+    Key? key,
+  }) : super(key: key);
+
+  void deleteFile(BuildContext context) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('File deleted successfully!')),
+        );
+        callBack('delete'); // Pass 'delete' action
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting file: $e')),
+      );
+    }
+  }
+
+  void renameFile(BuildContext context) async {
+    final TextEditingController controller = TextEditingController();
+    String newName = '';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          title: Text(
+            'Rename File',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            cursorColor: Colors.white,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter new file name',
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xffFF8484)),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Color(0xffFF8484)),
+              ),
+              hintStyle: TextStyle(color: Colors.white),
+            ),
+            onChanged: (value) {
+              newName = value;
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                if (newName.isNotEmpty) {
+                  final file = File(filePath);
+                  final newFilePath = '${file.parent.path}/$newName';
+                  try {
+                    await file.rename(newFilePath);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('File renamed to $newName')),
+                    );
+                    callBack('rename'); // Pass 'rename' action
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error renaming file: $e')),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                'Rename',
+                style: TextStyle(color: Color(0xffFF8484)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void moveFile(BuildContext context, List<String> availableCollections) {
+    String? selectedCollection;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.black,
+          surfaceTintColor: Colors.black,
+          title: Text(
+            'Move File',
+            style: TextStyle(color: Colors.white),
+          ),
+          content: DropdownButton<String>(
+            dropdownColor: Colors.black,
+            isExpanded: true,
+            value: selectedCollection,
+            hint: Text(
+              'Select a collection',
+              style: TextStyle(color: Colors.white),
+            ),
+            onChanged: (String? newValue) {
+              selectedCollection = newValue;
+            },
+            items: availableCollections.map((String collection) {
+              return DropdownMenuItem<String>(
+                value: collection,
+                child: Text(
+                  collection,
+                  style: TextStyle(color: Colors.white),
+                ),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                if (selectedCollection != null) {
+                  try {
+                    final file = File(filePath);
+                    final newFilePath =
+                        '${file.parent.parent.path}/$selectedCollection/${file.path.split('/').last}';
+                    await file.rename(newFilePath);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text('File moved to $selectedCollection')),
+                    );
+                    callBack('move'); // Pass 'move' action
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error moving file: $e')),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                'Move',
+                style: TextStyle(color: Color(0xffFF8484)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void fetchFolderNamesAndMove(BuildContext context) async {
+    try {
+      final appDocDir = await getApplicationDocumentsDirectory();
+      final collectionsDir = Directory('${appDocDir.path}/Collections');
+      if (await collectionsDir.exists()) {
+        final folders = collectionsDir.listSync().whereType<Directory>();
+        final folderNames =
+            folders.map((folder) => folder.path.split('/').last).toList();
+
+        // Pass the folder names to moveFile
+        moveFile(context, folderNames);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Collections directory does not exist.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching collections: $e')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        getIt<CollectionModel>().setSelectedCollectionIndex(index);
+      },
+      onDoubleTap: () {
+        // Navigate to a new screen on double tap
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PhotoViewScreen(filePath: filePath),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          color: Colors.grey[300],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              FutureBuilder<File>(
+                future: File(filePath).exists().then((exists) => exists
+                    ? File(filePath)
+                    : Future.error('File does not exist')),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.done &&
+                      snapshot.hasData) {
+                    return PhotoView(imageProvider: FileImage(snapshot.data!));
+                  } else if (snapshot.hasError) {
+                    return Center(
+                        child: Icon(Icons.error, color: Colors.white));
+                  } else {
+                    return Center(child: CircularProgressIndicator());
+                  }
+                },
+              ),
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withOpacity(0.5),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: PopupMenuButton<String>(
+                  color: Colors.black,
+                  onSelected: (value) {
+                    if (value == 'Delete') {
+                      deleteFile(context);
+                    } else if (value == 'Rename') {
+                      renameFile(context);
+                    } else if (value == 'Move') {
+                      fetchFolderNamesAndMove(context);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) {
+                    return ['Delete', 'Rename', 'Move'].map((String choice) {
+                      return PopupMenuItem<String>(
+                        value: choice,
+                        child: Text(
+                          choice,
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }).toList();
+                  },
+                  icon: Icon(Icons.more_vert, color: Colors.white),
+                  tooltip: 'More options',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class TextItemCard extends StatelessWidget {
   final String filePath;
   final int index;
@@ -953,6 +1380,43 @@ class TextItemCard extends StatelessWidget {
               icon: Icon(Icons.more_vert, color: Colors.black),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class PhotoViewScreen extends StatelessWidget {
+  final String filePath;
+
+  const PhotoViewScreen({required this.filePath, Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: FutureBuilder<File>(
+          future: File(filePath).exists().then((exists) =>
+              exists ? File(filePath) : Future.error('File does not exist')),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.hasData) {
+              return PhotoView(
+                imageProvider: FileImage(snapshot.data!),
+                minScale: PhotoViewComputedScale.contained * 0.8,
+                maxScale: PhotoViewComputedScale.covered * 2.0,
+                backgroundDecoration: BoxDecoration(color: Colors.black),
+              );
+            } else if (snapshot.hasError) {
+              return Center(child: Icon(Icons.error, color: Colors.white));
+            } else {
+              return Center(child: CircularProgressIndicator());
+            }
+          },
         ),
       ),
     );
