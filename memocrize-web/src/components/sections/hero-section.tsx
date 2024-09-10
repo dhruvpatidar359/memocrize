@@ -16,7 +16,7 @@ export async function HeroSection() {
     <section
       id="hero-section"
       aria-label="hero section"
-      className="mt-16 w-full md:mt-16"
+      className="mt-16 w-full md:mt-16 mb-20"
     >
       <div className="container flex flex-col items-center gap-6 text-center">
         {gitHubStars ? (
@@ -32,7 +32,7 @@ export async function HeroSection() {
               className="rounded-md px-3.5 py-1.5 text-sm transition-all duration-1000 ease-out hover:opacity-80 md:text-base md:hover:-translate-y-2"
             >
               <Icons.gitHub className="mr-2 size-3.5" aria-hidden="true" />
-              {gitHubStars} Stars on GitHub
+             Product Hunt
             </Badge>
             <span className="sr-only">GitHub</span>
           </Link>
@@ -41,17 +41,12 @@ export async function HeroSection() {
           <Balancer>
           Memorize everything{" "}
             <span className="bg-gradient-to-r from-pink-600 to-purple-400 bg-clip-text font-extrabold text-transparent">
-              with Memocrize
+              with BrainBox
             </span>
           </Balancer>
         </h1>
 
-        <h3 className="max-w-2xl animate-fade-up text-muted-foreground sm:text-xl sm:leading-8">
-          <Balancer>
-          Tailored Food Safety and Delicious Recipes for Your Condition. Why ask friends or family when you can ask us?
-          </Balancer>
-        </h3>
-
+       
         <div className="z-10 flex animate-fade-up flex-col justify-center gap-4 sm:flex-row">
           <Link
             href="/signin"

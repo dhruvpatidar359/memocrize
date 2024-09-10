@@ -18,7 +18,7 @@ export function OAuthButtons(): JSX.Element {
 
   const setAccessTokenCookie = (accessToken: string) => {
     setCookie('googleAccessToken', accessToken, {
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict'
     })

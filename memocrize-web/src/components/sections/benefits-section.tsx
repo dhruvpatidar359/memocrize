@@ -26,12 +26,11 @@ export function BenefitsSection(): JSX.Element {
           </h2>
           <h3 className="max-w-2xl text-muted-foreground sm:text-xl sm:leading-8">
             <Balancer>
-            Millions are benefiting from personalized dietary advice. {" "}
-              {/* <span className="font-semibold text-foreground">
-                {siteConfig.name}
-              </span>{" "} */}
-              Stay ahead with our advanced AI-driven solutions to ensure you make the best choices for your health!
-              Don&apos;t get left behind!
+           BrainBox Gives you the Ability which makes you {" "}
+              <span className="font-semibold text-foreground">
+                Unlimited MemoryBox
+              </span>{" "}
+             
             </Balancer>
           </h3>
         </div>
@@ -48,45 +47,34 @@ export function BenefitsSection(): JSX.Element {
                 </CardDescription>
                 <CardTitle className="font-urbanist text-3xl font-black tracking-wide">
                   <Balancer>
-                    Get a Head Start <br className="hidden md:inline-block" />{" "}
-                    on Your Competitors
+                    Get the SHORTCUTS <br className="hidden md:inline-block" />{" "}
+                    In Your HANDS
                   </Balancer>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <p className="text-base leading-8 tracking-wide text-muted-foreground">
                   <Balancer>
-                    Since everything is professionally configured and up to
-                    standards, you save a tremendous amount of time and effort,
-                    which you can now spend focusing on what really matters -
-                    core functionality, unique to your business.
+                    Use the Advanced Shortcut powers given to capture the things 
+                    you love the most and want to remember.
                   </Balancer>
                 </p>
                 <div>
                   <div className="pr-8">
                     <div className="relative z-10 flex flex-col gap-3 rounded-xl bg-background p-4 text-center shadow-xl">
                       <p className="text-3xl font-bold text-pink-800 dark:text-pink-600">
-                        162.9k
+                       CMD + SHIFT + F
                       </p>
-                      <p className="text-xs font-bold tracking-wide text-purple-600 dark:text-purple-300">
-                        Last 7 Days Website Visits
+                      <p className="text-3xl font-bold text-pink-800 dark:text-pink-600">
+                       CMD + SHIFT + X
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        23% Increase from Last Week
+                      <p className="text-3xl font-bold text-pink-800 dark:text-pink-600">
+                       CMD + SHIFT + S
                       </p>
+                    
                     </div>
                   </div>
-                  <div className="-mt-14 pl-8">
-                    <div className="flex flex-col gap-3 rounded-xl bg-background p-4 text-center opacity-30 shadow-xl">
-                      <p className="text-3xl font-bold">132.7k</p>
-                      <p className="text-xs font-bold tracking-wide">
-                        Last 14 Days Website Visits
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        17% Increase from Last Week
-                      </p>
-                    </div>
-                  </div>
+                
                 </div>
               </CardContent>
             </Card>

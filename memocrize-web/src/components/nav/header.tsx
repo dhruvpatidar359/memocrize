@@ -43,7 +43,7 @@ export function Header(): JSX.Element {
           href="/"
           className="flex items-center justify-center gap-2 text-lg font-bold tracking-wide transition-all duration-300 ease-in-out"
         >
-          <Image src={"/logo.svg"} alt="logo" height={40} width={40} />
+          <Image src={"/logo.png"} className="rounded-lg" alt="logo" height={40} width={40} />
           <span className="hidden md:flex">{siteConfig.name}</span>
         </Link>
         <Navigation navItems={siteConfig.navItems} />
