@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:gap/gap.dart';
 import 'package:glossy/glossy.dart';
+import 'package:memotips/fetch-data/check-internet.dart';
 import 'package:memotips/models/CollectionMode.dart';
 import 'package:memotips/screens/Collections/serach.dart';
 import 'package:memotips/screens/Collections/cards.dart';
@@ -25,6 +26,7 @@ class _CollectionsState extends State<Collections> {
   @override
   void initState() {
     super.initState();
+    checkInternetAndFetchData();
     fetchCollections(); // Fetch the collections when the widget initializes
   }
 
@@ -122,6 +124,9 @@ class _CollectionsState extends State<Collections> {
         x.selectedCollectionIndex); // Track the selected item index
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(onPressed: () {
+        fetchCollections();
+      },),
       backgroundColor: Colors.black,
       body: Container(
         color: Colors.black,

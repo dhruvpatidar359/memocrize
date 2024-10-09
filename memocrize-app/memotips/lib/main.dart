@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:memotips/models/CollectionMode.dart';
+import 'package:memotips/screens/Collections/collections.dart';
 import 'package:memotips/screens/qr_code.dart';
 import 'dart:io'; // Import the dart:io package
 import 'package:path_provider/path_provider.dart'; // Import path_provider
@@ -43,6 +44,7 @@ Future<void> createCollectionsDirectory() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -53,7 +55,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: Scaffold(body: QrCode()),
+      home: Scaffold(body: Collections()),
     );
   }
 }
